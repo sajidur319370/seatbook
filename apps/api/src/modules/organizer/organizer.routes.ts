@@ -1,10 +1,18 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { createEventSchema, EVENT_STATUSES, updateEventSchema } from '@seatbook/shared';
+import {
+  createEventSchema,
+  EVENT_STATUSES,
+  seatMapInputSchema,
+  updateEventSchema,
+} from '@seatbook/shared';
+import { badRequest } from '../../lib/errors';
 import { authorize } from '../../middleware/authorize';
 import { validate, valid } from '../../middleware/validate';
 import { ownedEventParam } from './ownedEvent.param';
 import * as svc from './event.service';
+import { publishEvent, unpublishEvent } from './publish.service';
+import { saveSeatMap } from './seatmap.service';
 import { findOwnedEvent } from '../events/scope';
 import { toOrganizerEventDto } from '../events/event.dto';
 
@@ -55,4 +63,29 @@ organizerRouter.delete('/events/:eventId', authorize('event:manage'), async (req
   await svc.deleteDraft(req.ctx, req.event!._id);
   res.status(204).end();
 });
-// Day 7: seat-map, publish, unpublish · Day 18: check-in · Day 19: dashboard, attendees
+
+organizerRouter.put('/events/:eventId/seat-map', authorize('event:manage'), async (req, res) => {
+  const parsed = seatMapInputSchema.safeParse(req.body);
+  if (!parsed.success) {
+    // One clear code for every layout problem, with a path the builder can highlight.
+    throw badRequest(
+      'SEAT_MAP_INVALID',
+      'The seat map has problems.',
+      parsed.error.issues.map((i) => ({
+        path: i.path,
+        message: i.message,
+        ...((i as { params?: object }).params ?? {}),
+      })),
+    );
+  }
+  res.json({ event: toOrganizerEventDto(await saveSeatMap(req.ctx, req.event!._id, parsed.data)) });
+});
+
+organizerRouter.post('/events/:eventId/publish', authorize('event:manage'), async (req, res) => {
+  res.json({ event: toOrganizerEventDto(await publishEvent(req.ctx, req.event!._id)) });
+});
+
+organizerRouter.post('/events/:eventId/unpublish', authorize('event:manage'), async (req, res) => {
+  res.json({ event: toOrganizerEventDto(await unpublishEvent(req.ctx, req.event!._id)) });
+});
+// Day 18: check-in · Day 19: dashboard, attendees

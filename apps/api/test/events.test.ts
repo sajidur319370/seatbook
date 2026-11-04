@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { app } from './setup/app';
 import { as } from './helpers/auth';
 import { makeAdmin, makeOrganizer } from './helpers/roles';
-import { eventInput, makeDraft, makePublished } from './factories/events';
+import { eventInput, makeDraft, makePublished, makePublishedEvent } from './factories/events';
 import { env } from '../src/config/env';
 import { Event } from '../src/db/models';
 import { addDays } from '../src/lib/dates';
@@ -255,17 +255,21 @@ describe('update', () => {
 
   it('after publishing: details can change, the locked fields cannot (FR-EVT-02)', async () => {
     const org = await makeOrganizer();
-    const event = await makePublished(org.token, { summary: 'Keep me' });
+    const { event } = await makePublishedEvent(org.token, { summary: 'Keep me' });
 
     const title = await as(org.token)
       .patch(eventUrl(event.id))
-      .send({ title: 'New title', expectedRevision: 1 });
+      .send({ title: 'New title', expectedRevision: event.revision });
     expect(title.status).toBe(200);
     expect(title.body.event).toMatchObject({ title: 'New title', summary: 'Keep me' });
 
     const locked = await as(org.token)
       .patch(eventUrl(event.id))
-      .send({ startsAt: inDays(30).toISOString(), currency: 'USD', expectedRevision: 2 });
+      .send({
+        startsAt: inDays(30).toISOString(),
+        currency: 'USD',
+        expectedRevision: event.revision + 1,
+      });
     expect(locked.status).toBe(409);
     expect(locked.body.error.code).toBe('EVENT_NOT_DRAFT');
     expect(locked.body.error.details.fields.sort()).toEqual(['currency', 'startsAt']);

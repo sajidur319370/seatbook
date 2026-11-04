@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { can, type Permission } from '@seatbook/shared';
 import { app } from './setup/app';
-import { eventInput, makeDraft } from './factories/events';
+import { eventInput, makeDraft, smallLayout } from './factories/events';
 import { as } from './helpers/auth';
 import { makeAdmin, makeAttendee, makeOrganizer } from './helpers/roles';
 import { OrganizerApplication } from '../src/db/models';
@@ -99,7 +99,26 @@ const ROWS: Row[] = [
     path: () => '/api/admin/events',
     perm: 'admin:events',
   },
-  // Day 7: seat map, publish. Day 11: hold rows, Day 16: checkout, Day 18: check-in, Day 19: dashboards
+  {
+    name: 'save seat map',
+    method: 'put',
+    path: (f) => `/api/organizer/events/${f.eventId}/seat-map`,
+    perm: 'event:manage',
+    body: () => ({ ...smallLayout(), expectedRevision: 1 }),
+  },
+  {
+    name: 'publish',
+    method: 'post',
+    path: (f) => `/api/organizer/events/${f.eventId}/publish`,
+    perm: 'event:manage',
+  },
+  {
+    name: 'unpublish',
+    method: 'post',
+    path: (f) => `/api/organizer/events/${f.eventId}/unpublish`,
+    perm: 'event:manage',
+  },
+  // Day 11: hold rows, Day 16: checkout, Day 18: check-in, Day 19: dashboards
 ];
 
 describe('RBAC matrix', () => {

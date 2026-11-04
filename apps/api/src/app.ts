@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import compression from 'compression';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
@@ -16,6 +17,7 @@ export function createApp() {
 
   app.use(httpLogger);
   app.use(helmet());
+  app.use(compression({ threshold: 1024 }));
   app.use(cors({ origin: env.APP_URL, credentials: true }));
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());

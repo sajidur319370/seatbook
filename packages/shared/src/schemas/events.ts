@@ -65,12 +65,9 @@ export const createEventSchema = z
     refundsAllowed: detailsShape.refundsAllowed.default(false),
   })
   .superRefine((v, ctx) => {
-    // Zod 4 runs this even after a field failed, so a bad date can arrive here as a string or
-    // undefined. That field already has its own error; comparing it would crash with a 500.
-    const optional = [v.salesStartAt, v.salesEndAt].filter((d) => d != null);
-    const dates = [v.startsAt, v.endsAt, ...optional] as unknown[];
-    if (!dates.every((d) => d instanceof Date)) return;
-
+    // Stop if a field already failed. Zod 4 still runs this after a format check, so a bad date
+    // would arrive here as a string and comparing it would crash with a 500.
+    if (ctx.issues.length) return;
     for (const i of scheduleIssues(v)) ctx.addIssue({ code: 'custom', ...i });
   });
 

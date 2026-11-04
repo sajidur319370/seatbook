@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { EVENT_CATEGORIES } from '@seatbook/shared';
+import { EVENT_CATEGORIES, objectIdSchema } from '@seatbook/shared';
 import { Event, type EventLean } from '../../db/models';
 import { decodeStartsCursor, encodeStartsCursor } from '../../lib/cursor';
 import { notFound } from '../../lib/errors';
+import { oid } from '../../lib/ids';
 import { escapeRegex } from '../../lib/regex';
 import { optionalAuth } from '../../middleware/authenticate';
 import { validate, valid } from '../../middleware/validate';
 import { publicEventFilter } from './scope';
 import { toPublicEventDto } from './event.dto';
+import { loadSeatMap, tiersWithRemaining } from './seatmap.public';
 import { organizerName } from '../organizer/event.service';
 
 export const publicEventsRouter = Router();
@@ -59,6 +61,12 @@ publicEventsRouter.get('/', validate(listReq), async (req, res) => {
   });
 });
 
+// Two segments, so it never collides with /:slug below.
+const seatsReq = { params: z.object({ eventId: objectIdSchema }) };
+publicEventsRouter.get('/:eventId/seats', optionalAuth, validate(seatsReq), async (req, res) => {
+  res.json(await loadSeatMap(req.maybeCtx, oid(valid(req, seatsReq).params.eventId)));
+});
+
 publicEventsRouter.get('/:slug', optionalAuth, async (req, res) => {
   const ev = await Event.findOne({
     slug: String(req.params.slug).toLowerCase(),
@@ -71,7 +79,7 @@ publicEventsRouter.get('/:slug', optionalAuth, async (req, res) => {
     event: toPublicEventDto(ev, new Date(), {
       description: ev.description,
       organizerName: await organizerName(ev.organizerId),
+      tiers: await tiersWithRemaining(ev),
     }),
   });
-  // Day 7 adds tiers[].remaining
 });
