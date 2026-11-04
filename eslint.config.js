@@ -22,4 +22,19 @@ export default tseslint.config(
     files: ['apps/api/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // A forgotten ownership scope fails CI (schema.md §3).
+    files: ['apps/api/src/modules/**/*.ts'],
+    ignores: ['apps/api/src/modules/**/scope.ts', 'apps/api/src/modules/admin/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name=/^(Event|Booking|Ticket)$/][callee.property.name='findById']",
+          message: 'Use a scoped finder (findOwnedEvent / findMyBooking / findMyTicket).',
+        },
+      ],
+    },
+  },
 );

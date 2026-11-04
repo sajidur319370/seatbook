@@ -1,4 +1,11 @@
-import type { Role } from './constants';
+import type {
+  Currency,
+  EventCategory,
+  EventPhase,
+  EventStatus,
+  PaletteColor,
+  Role,
+} from './constants';
 
 export type Id = string;
 
@@ -26,5 +33,57 @@ export interface ApplicationSummaryDto {
 export interface MeResponse {
   user: UserDto;
   application: ApplicationSummaryDto | null; // organizer application, filled in on Day 5
+}
+
+export interface TierDto {
+  id: Id;
+  name: string;
+  price: number;
+  color: PaletteColor;
+  remaining?: number;
+}
+
+/** Sections and tiers get their real types with the layout schema on Day 7. */
+export interface SeatMapDto {
+  stageLabel: string;
+  sections: unknown[];
+  tiers: unknown[];
+}
+
+export interface PublicEventDto {
+  id: Id;
+  slug: string;
+  title: string;
+  summary: string;
+  description?: string;
+  category: EventCategory;
+  venue: { name: string; address: string; city: string };
+  timezone: string;
+  startsAt: string;
+  endsAt: string;
+  salesStartAt: string | null;
+  salesEndAt: string | null;
+  currency: Currency;
+  maxSeatsPerOrder: number;
+  coverColor: PaletteColor;
+  phase: EventPhase;
+  soldOut: boolean;
+  lowestPrice: number | null;
+  organizerName?: string;
+  tiers?: TierDto[];
+}
+
+export interface OrganizerEventDto extends PublicEventDto {
+  status: EventStatus;
+  revision: number;
+  refundsAllowed: boolean;
+  counters: {
+    seatsTotal: number;
+    seatsSellable: number;
+    seatsSold: number;
+    ticketsCheckedIn: number;
+    revenue: number;
+  };
+  seatMap: SeatMapDto;
 }
 // More DTOs are added day by day.

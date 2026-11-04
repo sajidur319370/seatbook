@@ -1,4 +1,5 @@
 import type { Types } from 'mongoose';
+import type { OwnedEventLean } from '../modules/events/scope';
 import type { Ctx } from './ctx';
 
 declare global {
@@ -9,6 +10,7 @@ declare global {
       sessionId: string;
       ctx: Ctx; // set by authenticate
       maybeCtx: Ctx | null; // set by optionalAuth (public routes, Day 6)
+      event?: OwnedEventLean; // set by ownedEventParam on routes with :eventId
     }
   }
 }

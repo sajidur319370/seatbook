@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose';
 import type { Role } from '@seatbook/shared';
-import { OrganizerApplication, Session, User } from '../../db/models';
+import { Event, OrganizerApplication, Session, User } from '../../db/models';
 import { withTransaction } from '../../db/transaction';
 import { conflict, forbidden, notFound } from '../../lib/errors';
 import { decodeCursor, encodeCursor } from '../../lib/cursor';
@@ -118,7 +118,18 @@ export async function updateUser(
   const now = ctx.now();
 
   if (patch.role) {
-    // Day 6 (when the Event model exists): demoting an organizer with live sales → 409 ORGANIZER_HAS_LIVE_EVENTS (FR-ADM-02)
+    if (patch.role === 'attendee') {
+      const live = await Event.exists({
+        organizerId: targetId,
+        status: 'published',
+        'counters.seatsSold': { $gt: 0 },
+      });
+      if (live)
+        throw conflict(
+          'ORGANIZER_HAS_LIVE_EVENTS',
+          'This organizer has published events with sales.',
+        ); // FR-ADM-02
+    }
     const u = await User.findOneAndUpdate(
       { _id: targetId, role: { $ne: 'admin' } }, // ceiling in the filter (FR-ADM-04, I19)
       { $set: { role: patch.role } },

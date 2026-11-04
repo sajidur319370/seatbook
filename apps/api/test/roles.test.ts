@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { app } from './setup/app';
+import { eventInput } from './factories/events';
 import { PASSWORD, as, refreshCookie } from './helpers/auth';
 import { makeAdmin, makeAttendee, makeOrganizer } from './helpers/roles';
 import { OrganizerApplication, Session, User } from '../src/db/models';
@@ -41,7 +42,8 @@ describe('roles & applications', () => {
     expect(me.body.user.organizationName).toBe('Dhaka Live');
     expect(me.body.application.status).toBe('approved');
     expect(outbox.at(-1)?.subject).toMatch(/create events/);
-    // Day 6 extends this test: the same token can POST /api/organizer/events.
+    const created = await as(rafi.token).post('/api/organizer/events').send(eventInput());
+    expect(created.status).toBe(201);
   });
 
   it('only one pending application per user', async () => {

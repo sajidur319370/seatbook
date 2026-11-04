@@ -15,3 +15,8 @@ export function decodeCursor(c: string): { t: Date; id: Types.ObjectId } {
     throw badRequest('INVALID_CURSOR');
   }
 }
+
+/** The same cursor over (startsAt, _id), for event lists. */
+export const encodeStartsCursor = (d: { startsAt: Date; _id: Types.ObjectId }) =>
+  encodeCursor({ createdAt: d.startsAt, _id: d._id });
+export const decodeStartsCursor = decodeCursor;

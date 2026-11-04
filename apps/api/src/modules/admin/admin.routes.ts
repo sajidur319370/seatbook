@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { objectIdSchema, rejectSchema, ROLES } from '@seatbook/shared';
+import { EVENT_STATUSES, objectIdSchema, rejectSchema, ROLES } from '@seatbook/shared';
 import { authorize } from '../../middleware/authorize';
 import { validate, valid } from '../../middleware/validate';
 import { oid } from '../../lib/ids';
+import { toOrganizerEventDto } from '../events/event.dto';
+import { listEventsNewestFirst } from '../organizer/event.service';
 import * as admin from './admin.service';
 
 export const adminRouter = Router(); // mounted behind authenticate
@@ -61,6 +63,22 @@ const listUsersReq = {
 };
 adminRouter.get('/users', authorize('admin:users'), validate(listUsersReq), async (req, res) => {
   res.json(await admin.listUsers(valid(req, listUsersReq).query));
+});
+
+const listEventsReq = {
+  query: z.object({
+    status: z.enum(EVENT_STATUSES).optional(),
+    organizerId: objectIdSchema.optional(),
+    cursor: z.string().optional(),
+  }),
+};
+adminRouter.get('/events', authorize('admin:events'), validate(listEventsReq), async (req, res) => {
+  const q = valid(req, listEventsReq).query;
+  const filter: Record<string, unknown> = {};
+  if (q.status) filter.status = q.status;
+  if (q.organizerId) filter.organizerId = oid(q.organizerId);
+  const { items, nextCursor } = await listEventsNewestFirst(filter, q.cursor);
+  res.json({ items: items.map((e) => toOrganizerEventDto(e)), nextCursor });
 });
 
 const patchUserReq = {

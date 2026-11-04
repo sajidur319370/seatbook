@@ -2,12 +2,13 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { can, type Permission } from '@seatbook/shared';
 import { app } from './setup/app';
+import { eventInput, makeDraft } from './factories/events';
 import { as } from './helpers/auth';
 import { makeAdmin, makeAttendee, makeOrganizer } from './helpers/roles';
 import { OrganizerApplication } from '../src/db/models';
 
 type Who = 'guest' | 'attendee' | 'organizer' | 'admin';
-type Fixture = { applicationId: string; userId: string };
+type Fixture = { applicationId: string; userId: string; eventId: string };
 type Row = {
   name: string;
   method: 'get' | 'post' | 'patch' | 'put' | 'delete';
@@ -60,7 +61,45 @@ const ROWS: Row[] = [
     perm: 'admin:users',
     body: () => ({ suspended: true, reason: 'rbac test' }),
   },
-  // Day 6+: event rows, Day 11: hold rows, Day 16: checkout, Day 18: check-in, Day 19: dashboards
+  {
+    name: 'create event',
+    method: 'post',
+    path: () => '/api/organizer/events',
+    perm: 'event:create',
+    body: () => eventInput(),
+  },
+  {
+    name: 'list my events',
+    method: 'get',
+    path: () => '/api/organizer/events',
+    perm: 'event:manage',
+  },
+  {
+    name: 'read owned event',
+    method: 'get',
+    path: (f) => `/api/organizer/events/${f.eventId}`,
+    perm: 'event:manage',
+  },
+  {
+    name: 'update owned event',
+    method: 'patch',
+    path: (f) => `/api/organizer/events/${f.eventId}`,
+    perm: 'event:manage',
+    body: () => ({ title: 'Renamed event', expectedRevision: 1 }),
+  },
+  {
+    name: 'delete owned event',
+    method: 'delete',
+    path: (f) => `/api/organizer/events/${f.eventId}`,
+    perm: 'event:manage',
+  },
+  {
+    name: 'admin list events',
+    method: 'get',
+    path: () => '/api/admin/events',
+    perm: 'admin:events',
+  },
+  // Day 7: seat map, publish. Day 11: hold rows, Day 16: checkout, Day 18: check-in, Day 19: dashboards
 ];
 
 describe('RBAC matrix', () => {
@@ -80,7 +119,8 @@ describe('RBAC matrix', () => {
       message: 'x'.repeat(30),
     });
     const victim = await makeAttendee('Victim');
-    fixture = { applicationId: String(a._id), userId: victim.user.id };
+    const event = await makeDraft(tokens.organizer); // an admin is "allowed" here but gets a 404: not theirs
+    fixture = { applicationId: String(a._id), userId: victim.user.id, eventId: event.id };
   });
 
   for (const row of ROWS) {
