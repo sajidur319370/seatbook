@@ -9,9 +9,17 @@ import { AppError, badRequest, notFound } from '../lib/errors';
  * The race-related ones (one_active_hold, uniq_booking_hold, uniq_idempotency…) are caught
  * and handled INSIDE their services; if one ever reaches this handler, it's a bug → 500.
  */
-const DUPLICATE_KEY: Record<string, { status: number; code: string }> = {
-  uniq_email: { status: 409, code: 'EMAIL_TAKEN' },
-  one_pending_application: { status: 409, code: 'APPLICATION_PENDING' },
+const DUPLICATE_KEY: Record<string, { status: number; code: string; message: string }> = {
+  uniq_email: {
+    status: 409,
+    code: 'EMAIL_TAKEN',
+    message: 'An account with this email already exists.',
+  },
+  one_pending_application: {
+    status: 409,
+    code: 'APPLICATION_PENDING',
+    message: 'You already have a pending application.',
+  },
 };
 
 export function toAppError(err: unknown): AppError {
@@ -32,7 +40,7 @@ export function toAppError(err: unknown): AppError {
   if (e.code === 11000) {
     const index = /index: (\S+)/.exec(e.message ?? '')?.[1];
     const mapped = index ? DUPLICATE_KEY[index] : undefined;
-    if (mapped) return new AppError(mapped.status, mapped.code);
+    if (mapped) return new AppError(mapped.status, mapped.code, mapped.message);
   }
   if (e.type === 'entity.parse.failed')
     return badRequest('INVALID_JSON', 'Request body is not valid JSON.');

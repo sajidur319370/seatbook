@@ -26,6 +26,7 @@ describe('auth', () => {
       .send({ name: 'X', email: email.toUpperCase(), password: PASSWORD });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('EMAIL_TAKEN');
+    expect(res.body.error.message).toBe('An account with this email already exists.');
   });
 
   it('wrong password and unknown email give the same error', async () => {
