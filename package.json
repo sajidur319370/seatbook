@@ -15,7 +15,8 @@
     "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "db:up": "docker compose up -d --wait mongo",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "make-admin": "npm run make-admin -w @seatbook/api --"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

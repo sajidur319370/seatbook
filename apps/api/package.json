@@ -7,7 +7,8 @@
     "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "make-admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {
     "@seatbook/shared": "*",

@@ -46,8 +46,9 @@ authRouter.post('/refresh', async (req, res) => {
     setRefreshCookie(res, refreshToken);
     res.json({ accessToken });
   } catch (err) {
-    // Only when the token itself was refused: a database blip must not log the user out.
-    if (err instanceof AppError && err.status === 401) clearRefreshCookie(res);
+    // Only when the token or account was refused (401, or 403 if suspended):
+    // a database blip must not log the user out.
+    if (err instanceof AppError && err.status < 500) clearRefreshCookie(res);
     throw err;
   }
 });

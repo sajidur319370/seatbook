@@ -4,7 +4,7 @@ import type { LoginInput, RegisterInput } from '@seatbook/shared';
 import { Session, User } from '../../db/models';
 import { withTransaction } from '../../db/transaction';
 import { env, isProd } from '../../config/env';
-import { badRequest, unauthenticated } from '../../lib/errors';
+import { badRequest, forbidden, unauthenticated } from '../../lib/errors';
 import { randomToken, sha256 } from '../../lib/crypto';
 import { addDays, addMinutes } from '../../lib/dates';
 import { DUMMY_HASH, hashPassword, verifyPassword } from '../../lib/password';
@@ -46,6 +46,7 @@ export async function login(input: LoginInput, meta: ClientMeta) {
   const user = await User.findOne({ email: input.email }).select('+passwordHash').lean();
   const ok = await verifyPassword(input.password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) throw unauthenticated('INVALID_CREDENTIALS', 'Invalid email or password');
+  if (user.suspendedAt) throw forbidden('ACCOUNT_SUSPENDED', 'This account is suspended.');
   return { user: toUserDto(user), ...(await startSession(user._id, meta)) };
 }
 
@@ -54,6 +55,15 @@ export async function refresh(presented: string | undefined, meta: ClientMeta) {
   const now = new Date();
   const s = await Session.findOne({ tokenHash: sha256(presented) }).lean();
   if (!s) throw unauthenticated();
+
+  const owner = await User.findById(s.userId).select('suspendedAt').lean();
+  if (!owner || owner.suspendedAt) {
+    await Session.updateMany(
+      { familyId: s.familyId, revokedAt: null },
+      { $set: { revokedAt: now } },
+    );
+    throw forbidden('ACCOUNT_SUSPENDED', 'This account is suspended.');
+  }
 
   if (s.replacedByHash || s.revokedAt) {
     // A rotated or revoked token came back: assume theft and kill the whole family.
