@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: seatbook-mongo
+    # 27018, not the default: 27017 is used by another project's container on this machine.
+    # The container port must match the host port, because clients connect to the address
+    # the replica set advertises (see rs.initiate below), not just the one in the URI.
+    command: ['--replSet', 'rs0', '--bind_ip_all', '--port', '27018']
+    ports:
+      - '27018:27018'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the replica set on first start, then just reports status.
+      test: >
+        echo "try { rs.status() } catch (e) {
+          rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27018' }] })
+        }" | mongosh --port 27018 --quiet
+      interval: 5s
+      timeout: 30s
+      retries: 30
+
+volumes:
+  mongo-data:
