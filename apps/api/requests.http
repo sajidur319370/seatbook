@@ -1,0 +1,29 @@
+@base = http://localhost:4000/api
+
+### Register
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{ "name": "Sajid", "email": "sajid@test.dev", "password": "Passw0rd!" }
+
+### Log in
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "sajid@test.dev", "password": "Passw0rd!" }
+
+### Me (paste the accessToken)
+GET {{base}}/me
+Authorization: Bearer <token>
+
+### Refresh (REST Client sends the saved sb_refresh cookie)
+POST {{base}}/auth/refresh
+
+### Forgot password (the reset link is printed in the API's console)
+POST {{base}}/auth/forgot-password
+Content-Type: application/json
+
+{ "email": "sajid@test.dev" }
+
+### Log out
+POST {{base}}/auth/logout

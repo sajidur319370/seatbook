@@ -7,6 +7,9 @@ const EnvSchema = z.object({
   MONGODB_URI: z.string().min(1),
   APP_URL: z.url().default('http://localhost:5173'), // used in invite / reset links
   DEBUG_MONGO: z.string().optional(),
+  JWT_ACCESS_SECRET: z.string().min(32),
+  ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().default(900), // 15 min; set 30 in dev to test refresh
+  BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
