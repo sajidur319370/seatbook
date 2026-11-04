@@ -46,7 +46,8 @@ export function scheduleIssues(s: Schedule): { path: string[]; message: string }
   if (hours > LIMITS.maxEventHours)
     issues.push({ path: ['endsAt'], message: `At most ${LIMITS.maxEventHours} hours` });
   const salesEnd = s.salesEndAt ?? s.startsAt;
-  if (salesEnd > s.endsAt)
+  // Only an end the organizer chose: the default (the start time) is covered by the first rule.
+  if (s.salesEndAt && salesEnd > s.endsAt)
     issues.push({ path: ['salesEndAt'], message: 'Sales must end before the event ends' });
   if (s.salesStartAt && s.salesStartAt >= salesEnd)
     issues.push({ path: ['salesStartAt'], message: 'Sales must start before they end' });

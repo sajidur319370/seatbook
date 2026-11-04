@@ -541,6 +541,14 @@ describe('admin', () => {
     expect(second.body.nextCursor).toBeNull();
   });
 
+  it('shows who runs each event', async () => {
+    const admin = await makeAdmin();
+    const org = await makeOrganizer('Nadia');
+    await makeDraft(org.token);
+    const res = await as(admin.token).get('/api/admin/events');
+    expect(res.body.items[0].organizerName).toBe('Nadia Productions');
+  });
+
   it('cannot demote an organizer with live sales, but can demote one without (FR-ADM-02)', async () => {
     const admin = await makeAdmin();
     const seller = await makeOrganizer('Seller');

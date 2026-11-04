@@ -26,6 +26,7 @@ export function useLogin(returnTo: string) {
     mutationFn: (v: LoginInput) => http.post<AuthResponse>('/auth/login', v),
     onSuccess: async ({ accessToken }) => {
       setAccessToken(accessToken);
+      qc.clear(); // a session that expired left its data cached: don't show it to the next account
       qc.setQueryData(qk.me, await http.get<MeResponse>('/me'));
       navigate(returnTo, { replace: true });
     },
@@ -39,6 +40,7 @@ export function useRegister(returnTo: string) {
     mutationFn: (v: RegisterInput) => http.post<AuthResponse>('/auth/register', v),
     onSuccess: async ({ accessToken }) => {
       setAccessToken(accessToken);
+      qc.clear(); // a session that expired left its data cached: don't show it to the next account
       qc.setQueryData(qk.me, await http.get<MeResponse>('/me'));
       navigate(returnTo, { replace: true });
     },

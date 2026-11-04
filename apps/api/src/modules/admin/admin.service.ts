@@ -108,6 +108,14 @@ export async function listUsers(q: {
   return { items: page, nextCursor: rows.length > 50 ? String(page.at(-1)!._id) : null };
 }
 
+/** One query for a whole page of events, instead of one per row. */
+export async function organizerNames(ids: Types.ObjectId[]) {
+  const users = await User.find({ _id: { $in: ids } })
+    .select('organizationName name')
+    .lean();
+  return new Map(users.map((u) => [String(u._id), u.organizationName ?? u.name]));
+}
+
 export async function updateUser(
   ctx: Ctx,
   targetId: Types.ObjectId,

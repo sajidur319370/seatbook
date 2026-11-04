@@ -78,7 +78,14 @@ adminRouter.get('/events', authorize('admin:events'), validate(listEventsReq), a
   if (q.status) filter.status = q.status;
   if (q.organizerId) filter.organizerId = oid(q.organizerId);
   const { items, nextCursor } = await listEventsNewestFirst(filter, q.cursor);
-  res.json({ items: items.map((e) => toOrganizerEventDto(e)), nextCursor });
+  const names = await admin.organizerNames(items.map((e) => e.organizerId));
+  res.json({
+    items: items.map((e) => ({
+      ...toOrganizerEventDto(e),
+      organizerName: names.get(String(e.organizerId)) ?? '',
+    })),
+    nextCursor,
+  });
 });
 
 const patchUserReq = {

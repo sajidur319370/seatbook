@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 
 export function FormField(props: {
   id: string;
-  label: string;
+  label: ReactNode;
   error?: string;
   children: ReactNode;
 }) {

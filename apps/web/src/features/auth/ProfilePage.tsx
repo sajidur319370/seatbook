@@ -203,7 +203,7 @@ export function ProfilePage() {
   if (!user) return null; // RequireAuth redirects as soon as `me` is cleared
 
   return (
-    <main className="mx-auto max-w-xl space-y-6 p-4 sm:p-8">
+    <div className="mx-auto max-w-xl space-y-6">
       <h1 className="text-2xl font-semibold">Your profile</h1>
       <Card>
         <CardHeader>
@@ -229,6 +229,6 @@ export function ProfilePage() {
           <SessionActions />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
