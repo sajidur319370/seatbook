@@ -14,7 +14,7 @@ import { apiRouter } from './routes';
 
 export function createApp() {
   const app = express();
-  app.set('trust proxy', 1); // behind Render's proxy: correct req.ip for rate limits, secure cookies
+  app.set('trust proxy', env.TRUST_PROXY_HOPS); // correct req.ip for rate limits, secure cookies
   app.disable('x-powered-by');
 
   app.use(httpLogger);

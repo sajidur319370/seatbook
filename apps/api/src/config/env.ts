@@ -10,6 +10,9 @@ const EnvSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL_SEC: z.coerce.number().int().default(900), // 15 min; set 30 in dev to test refresh
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
+  // Proxies between the visitor and this app. On Render, measured from its logs: Cloudflare, then
+  // two hops inside Render. Wrong number: everyone shares one rate-limit bucket, or can fake an IP.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(3),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
