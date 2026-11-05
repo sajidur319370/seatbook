@@ -10,8 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatEventTime } from '@/lib/time';
-import { PhaseBadge, percentSold } from './PhaseBadge';
+import { formatEventTime } from '@/lib/eventTime';
+import { PhaseBadge, percentSold } from '@/components/PhaseBadge';
 import { useMyEvents } from './useOrganizerEvents';
 
 export function MyEventsPage() {

@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock } from 'lucide-react';
 import { Controller, useForm, useWatch, type UseFormSetError } from 'react-hook-form';
-import Markdown from 'react-markdown';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -18,6 +17,7 @@ import {
 } from '@seatbook/shared';
 import { ApiError } from '@/api/client';
 import { FormField } from '@/components/FormField';
+import { MarkdownView } from '@/components/MarkdownView';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -465,9 +465,8 @@ export function EventDetailsForm(props: {
         </FormField>
         <div className="space-y-1.5">
           <p className="text-sm font-medium">Preview</p>
-          {/* react-markdown renders no raw HTML, so a description can't inject a script. */}
-          <div className="min-h-40 space-y-2 rounded-md border bg-white p-3 text-sm [&_a]:text-blue-600 [&_a]:underline [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5">
-            <Markdown>{description}</Markdown>
+          <div className="min-h-40 rounded-md border bg-white p-3">
+            <MarkdownView>{description}</MarkdownView>
           </div>
         </div>
       </div>

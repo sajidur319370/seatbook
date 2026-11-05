@@ -2,6 +2,8 @@ import { lazy } from 'react';
 import { createBrowserRouter, createRoutesFromElements, Route } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { NotFoundPage } from '@/components/NotFoundPage';
+import { RouteError } from '@/components/RouteError';
+import { EventsPage } from '@/features/events/EventsPage';
 import { BecomeOrganizerPage } from '@/features/applications/BecomeOrganizerPage';
 import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage';
 import { LoginPage } from '@/features/auth/LoginPage';
@@ -10,6 +12,14 @@ import { ProfilePage } from '@/features/auth/ProfilePage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { RequireAuth } from '@/features/auth/RequireAuth';
 import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
+
+// Lazy, so the home page doesn't carry the map and Markdown code.
+const EventPage = lazy(() =>
+  import('@/features/events/EventPage').then((m) => ({ default: m.EventPage })),
+);
+const SeatsPage = lazy(() =>
+  import('@/features/events/SeatsPage').then((m) => ({ default: m.SeatsPage })),
+);
 
 // Lazy, so attendees never download the organizer and admin areas (NFR-PERF-08).
 const MyEventsPage = lazy(() =>
@@ -37,17 +47,19 @@ const AdminEventsPage = lazy(() =>
 // A data router, because the seat-map builder's leave warning (useBlocker) requires one.
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
+    <Route errorElement={<RouteError />}>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
       <Route element={<AppShell />}>
-        {/* Public: SeatBook's home is the event list (Day 10), which guests can browse too. */}
-        <Route path="/" element={<p>Events come on Day 10 🎭</p>} />
+        {/* Public: guests browse events, and only log in to choose seats. */}
+        <Route path="/" element={<EventsPage />} />
+        <Route path="/e/:slug" element={<EventPage />} />
 
         <Route element={<RequireAuth />}>
+          <Route path="/e/:slug/seats" element={<SeatsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/become-organizer" element={<BecomeOrganizerPage />} />
 
@@ -67,6 +79,6 @@ export const router = createBrowserRouter(
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
-    </>,
+    </Route>,
   ),
 );

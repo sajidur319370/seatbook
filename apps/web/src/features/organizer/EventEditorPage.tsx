@@ -20,7 +20,7 @@ import { SeatMapTab } from '@/features/builder/SeatMapTab';
 import { useBuilder } from '@/features/builder/builderStore';
 import { useBuilderSync, useUnsavedGuard } from '@/features/builder/useBuilderSync';
 import { EventDetailsForm } from './EventDetailsForm';
-import { PhaseBadge } from './PhaseBadge';
+import { PhaseBadge } from '@/components/PhaseBadge';
 import { useOrganizerEvent } from './useOrganizerEvents';
 
 function Editor(props: {

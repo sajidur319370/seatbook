@@ -8,7 +8,10 @@
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "make-admin": "tsx scripts/make-admin.ts"
+    "make-admin": "tsx scripts/make-admin.ts",
+    "make-big-event": "tsx scripts/make-big-event.ts",
+    "db:diff-indexes": "tsx scripts/diff-indexes.ts",
+    "db:sync-indexes": "tsx scripts/sync-indexes.ts"
   },
   "dependencies": {
     "@seatbook/shared": "*",

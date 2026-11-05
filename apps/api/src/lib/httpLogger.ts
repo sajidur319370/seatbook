@@ -11,6 +11,9 @@ export const httpLogger = pinoHttp({
     res.setHeader('x-request-id', id);
     return id;
   },
+  // AC-AUTH-05: Express serves the web app in production, so a reset link's URL reaches this logger
+  // with the live token in it.
+  autoLogging: { ignore: (req) => req.url?.startsWith('/reset-password/') ?? false },
   // AC-AUTH-05: tokens and cookies must never appear in logs
   redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
 });

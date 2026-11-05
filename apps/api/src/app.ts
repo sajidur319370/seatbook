@@ -1,11 +1,13 @@
+import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
-import { env } from './config/env';
+import { env, isProd } from './config/env';
 import { httpLogger } from './lib/httpLogger';
+import { serveWebApp } from './lib/serveWebApp';
 import { rejectDollarKeys } from './middleware/rejectDollarKeys';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiRouter } from './routes';
@@ -37,6 +39,9 @@ export function createApp() {
   });
 
   app.use('/api', apiRouter);
+
+  // apps/api/dist → apps/web/dist
+  if (isProd) serveWebApp(app, path.resolve(import.meta.dirname, '../../web/dist'));
 
   app.use(notFoundHandler); // must be after all routes
   app.use(errorHandler); // must be last

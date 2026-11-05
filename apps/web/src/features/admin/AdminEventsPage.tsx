@@ -7,8 +7,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PhaseBadge, percentSold } from '@/features/organizer/PhaseBadge';
-import { formatEventTime } from '@/lib/time';
+import { PhaseBadge, percentSold } from '@/components/PhaseBadge';
+import { formatEventTime } from '@/lib/eventTime';
 import { useAdminEvents } from './useAdmin';
 
 export function AdminEventsPage() {
