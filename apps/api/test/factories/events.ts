@@ -2,6 +2,8 @@ import { newId, type SeatMapInput } from '@seatbook/shared';
 import { Event, Seat } from '../../src/db/models';
 import { addDays } from '../../src/lib/dates';
 import { as } from '../helpers/auth';
+import type { makeClock } from '../helpers/clock';
+import { makeOrganizer } from '../helpers/roles';
 
 export const eventInput = (over: Record<string, unknown> = {}) => ({
   title: 'Hamlet — Evening Show',
@@ -74,4 +76,15 @@ export async function makePublishedEvent(
     eventId: draft.id,
     seats: seats.map((s) => ({ id: String(s._id), label: s.label })),
   };
+}
+
+/** On sale as of the fake clock, which must start at the real time: publishing uses the real one. */
+export async function publishedEventAt(clock: ReturnType<typeof makeClock>) {
+  const org = await makeOrganizer();
+  const startsAt = clock.now().getTime() + 30 * 86_400_000;
+  return makePublishedEvent(org.token, {
+    startsAt: new Date(startsAt).toISOString(),
+    endsAt: new Date(startsAt + 3 * 3_600_000).toISOString(),
+    salesStartAt: clock.now().toISOString(),
+  });
 }

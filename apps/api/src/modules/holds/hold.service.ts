@@ -8,6 +8,7 @@ import {
   type SeatStatus,
 } from '@seatbook/shared';
 import { CLEAR_HOLD, Event, Hold, Seat, type EventLean, type HoldLean } from '../../db/models';
+import { env } from '../../config/env';
 import { publish } from '../../events/publish';
 import type { SeatChange } from '../../events/types';
 import { addMinutes, subSeconds } from '../../lib/dates';
@@ -24,7 +25,7 @@ export const SEAT_CHANGE_FIELDS = {
   holdExpiresAt: 1,
 } as const;
 
-type SeatChangeRow = {
+export type SeatChangeRow = {
   _id: Types.ObjectId;
   eventId: Types.ObjectId;
   status: SeatStatus;
@@ -100,7 +101,11 @@ async function getOrCreateHold(ctx: Ctx, ev: OnSaleEvent, now: Date): Promise<Ho
 
   try {
     const [created] = await Hold.create([
-      { eventId: ev._id, userId: ctx.userId, expiresAt: addMinutes(now, HOLD.minutes) },
+      {
+        eventId: ev._id,
+        userId: ctx.userId,
+        expiresAt: addMinutes(now, env.HOLD_MINUTES_OVERRIDE ?? HOLD.minutes),
+      },
     ]);
     return created!.toObject() as HoldLean;
   } catch (err) {

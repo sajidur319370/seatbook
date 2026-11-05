@@ -5,3 +5,4 @@ export * from './event.model';
 export * from './seat.model';
 export * from './hold.model';
 export * from './booking.model';
+export * from './jobLock.model';

@@ -9,6 +9,7 @@ export default defineConfig({
       APP_URL: 'http://localhost:5173',
       JWT_ACCESS_SECRET: 'test-secret-test-secret-test-secret-123',
       BCRYPT_ROUNDS: '4', // fast hashing in tests
+      SWEEPER_ENABLED: 'false', // tests call sweepOnce themselves
     },
     setupFiles: ['./test/setup/hooks.ts'],
     testTimeout: 30_000,

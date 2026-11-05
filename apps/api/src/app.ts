@@ -6,6 +6,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { env, isProd } from './config/env';
+import { isSweeperStale } from './jobs/holdSweeper';
 import { httpLogger } from './lib/httpLogger';
 import { serveWebApp } from './lib/serveWebApp';
 import { rejectDollarKeys } from './middleware/rejectDollarKeys';
@@ -32,6 +33,10 @@ export function createApp() {
     try {
       if (mongoose.connection.readyState !== 1) throw new Error('not connected');
       await mongoose.connection.db!.admin().ping();
+      if (await isSweeperStale()) {
+        res.status(503).json({ ok: false, reason: 'sweeper' });
+        return;
+      }
       res.json({ ok: true });
     } catch {
       res.status(503).json({ ok: false });

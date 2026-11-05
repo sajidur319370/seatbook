@@ -11,7 +11,8 @@
     "make-admin": "tsx scripts/make-admin.ts",
     "make-big-event": "tsx scripts/make-big-event.ts",
     "db:diff-indexes": "tsx scripts/diff-indexes.ts",
-    "db:sync-indexes": "tsx scripts/sync-indexes.ts"
+    "db:sync-indexes": "tsx scripts/sync-indexes.ts",
+    "repair:stuck-holds": "tsx scripts/repair-stuck-holds.ts"
   },
   "dependencies": {
     "@seatbook/shared": "*",

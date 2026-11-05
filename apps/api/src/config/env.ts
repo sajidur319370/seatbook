@@ -13,6 +13,11 @@ const EnvSchema = z.object({
   // Proxies between the visitor and this app. On Render, measured from its logs: Cloudflare, then
   // two hops inside Render. Wrong number: everyone shares one rate-limit bucket, or can fake an IP.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(3),
+  SWEEPER_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((v) => v === 'true'),
+  HOLD_MINUTES_OVERRIDE: z.coerce.number().int().min(1).max(10).optional(), // dev only: shorter holds
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -23,3 +28,8 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export const isProd = env.NODE_ENV === 'production';
+
+if (isProd && env.HOLD_MINUTES_OVERRIDE) {
+  console.error('❌ HOLD_MINUTES_OVERRIDE is not allowed in production');
+  process.exit(1);
+}
