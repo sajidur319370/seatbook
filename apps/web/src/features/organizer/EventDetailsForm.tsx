@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock } from 'lucide-react';
 import { Controller, useForm, useWatch, type UseFormSetError } from 'react-hook-form';
@@ -174,7 +174,7 @@ function applyEventErrors(err: unknown, setError: UseFormSetError<FormValues>) {
 export function EventDetailsForm(props: {
   event?: OrganizerEventDto;
   defaultTimezone?: string;
-  onReload?: () => void;
+  onReload?: () => Promise<OrganizerEventDto | undefined>;
 }) {
   const { event } = props;
   const navigate = useNavigate();
@@ -185,7 +185,14 @@ export function EventDetailsForm(props: {
     resolver: zodResolver(formSchema),
     defaultValues: event ? toFormValues(event) : emptyValues(props.defaultTimezone ?? 'UTC'),
   });
-  const { errors, isSubmitting } = form.formState;
+  const { errors, isSubmitting, isDirty } = form.formState;
+  const { reset } = form;
+
+  // A seat-map save bumps the revision. Pick up the new values unless the user is mid-edit:
+  // the form keeps typed changes, and a save sends the latest revision.
+  useEffect(() => {
+    if (event && !isDirty) reset(toFormValues(event));
+  }, [event, isDirty, reset]);
 
   const cancelled = event?.status === 'cancelled';
   const locked = (field: string) =>
@@ -207,7 +214,8 @@ export function EventDetailsForm(props: {
         return;
       }
       const body = event.status === 'draft' ? input : onlyEditableAfterPublish(input);
-      await update.mutateAsync({ ...body, expectedRevision: event.revision });
+      const saved = await update.mutateAsync({ ...body, expectedRevision: event.revision });
+      reset(toFormValues(saved));
       toast.success('Saved');
     } catch (err) {
       if (err instanceof ApiError && err.code === 'STALE_DRAFT') setStale(true);
@@ -481,9 +489,10 @@ export function EventDetailsForm(props: {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 setStale(false);
-                props.onReload?.();
+                const fresh = await props.onReload?.();
+                if (fresh) reset(toFormValues(fresh));
               }}
             >
               Reload

@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Route, Routes } from 'react-router';
+import { createBrowserRouter, createRoutesFromElements, Route } from 'react-router';
 import { AppShell } from '@/components/AppShell';
 import { NotFoundPage } from '@/components/NotFoundPage';
 import { BecomeOrganizerPage } from '@/features/applications/BecomeOrganizerPage';
@@ -34,9 +34,10 @@ const AdminEventsPage = lazy(() =>
   import('@/features/admin/AdminEventsPage').then((m) => ({ default: m.AdminEventsPage })),
 );
 
-export function AppRoutes() {
-  return (
-    <Routes>
+// A data router, because the seat-map builder's leave warning (useBlocker) requires one.
+export const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -66,6 +67,6 @@ export function AppRoutes() {
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
-  );
-}
+    </>,
+  ),
+);

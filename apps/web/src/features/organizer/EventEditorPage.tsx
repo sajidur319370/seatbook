@@ -1,39 +1,84 @@
-import { Check, X } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import type { OrganizerEventDto } from '@seatbook/shared';
 import { ApiError } from '@/api/client';
 import { LoadError, LoadingRows } from '@/components/QueryStates';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PublishTab } from '@/features/builder/PublishTab';
+import { SeatMapTab } from '@/features/builder/SeatMapTab';
+import { useBuilder } from '@/features/builder/builderStore';
+import { useBuilderSync, useUnsavedGuard } from '@/features/builder/useBuilderSync';
 import { EventDetailsForm } from './EventDetailsForm';
 import { PhaseBadge } from './PhaseBadge';
 import { useOrganizerEvent } from './useOrganizerEvents';
 
-function ChecklistItem({ ok, children }: { ok: boolean; children: string }) {
-  return (
-    <li className="flex items-center gap-2">
-      {ok ? (
-        <Check className="size-4 text-green-600" aria-label="Done" />
-      ) : (
-        <X className="size-4 text-red-600" aria-label="Not done" />
-      )}
-      {children}
-    </li>
-  );
-}
+function Editor(props: {
+  event: OrganizerEventDto;
+  refetch: () => Promise<OrganizerEventDto | undefined>;
+}) {
+  const { event } = props;
+  const [tab, setTab] = useState('details');
+  const blocker = useUnsavedGuard();
+  useBuilderSync(event);
 
-function PublishChecklist({ event }: { event: OrganizerEventDto }) {
-  const hasSeats = event.seatMap.sections.some((s) => s.rows.length > 0);
+  /** Fetches the latest event and throws away unsaved seat-map work (the user chose Reload). */
+  const reloadBuilder = async () => {
+    const fresh = await props.refetch();
+    if (fresh) useBuilder.getState().load(fresh.id, fresh.seatMap, fresh.revision);
+  };
+
   return (
-    <ul className="space-y-2 text-sm">
-      <ChecklistItem ok={event.title.length >= 3}>Title</ChecklistItem>
-      <ChecklistItem ok={new Date(event.startsAt) > new Date()}>
-        The event starts in the future
-      </ChecklistItem>
-      <ChecklistItem ok={hasSeats && event.seatMap.tiers.length > 0}>
-        Seat map with price tiers
-      </ChecklistItem>
-    </ul>
+    <div className={`mx-auto space-y-4 ${tab === 'seat-map' ? 'max-w-6xl' : 'max-w-3xl'}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-semibold">{event.title}</h1>
+        <PhaseBadge phase={event.phase} />
+      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="seat-map">Seat map</TabsTrigger>
+          <TabsTrigger value="publish">Publish</TabsTrigger>
+        </TabsList>
+        {/* forceMount keeps unsaved details when you switch tabs. */}
+        <TabsContent value="details" forceMount className="data-[state=inactive]:hidden">
+          <Card className="p-6">
+            <EventDetailsForm key={event.id} event={event} onReload={props.refetch} />
+          </Card>
+        </TabsContent>
+        <TabsContent value="seat-map">
+          <SeatMapTab event={event} onReload={reloadBuilder} />
+        </TabsContent>
+        <TabsContent value="publish">
+          <PublishTab event={event} />
+        </TabsContent>
+      </Tabs>
+
+      <AlertDialog open={blocker.state === 'blocked'}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You have unsaved changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your seat map changes will be lost if you leave this page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
 
@@ -56,34 +101,5 @@ export function EventEditorPage() {
     return <LoadError error={query.error} onRetry={() => query.refetch()} />;
   }
 
-  const event = query.data;
-  return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold">{event.title}</h1>
-        <PhaseBadge phase={event.phase} />
-      </div>
-      <Tabs defaultValue="details">
-        <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="seat-map">Seat map</TabsTrigger>
-          <TabsTrigger value="publish">Publish</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details">
-          <Card className="p-6">
-            {/* A new revision remounts the form, so it can never keep editing stale values. */}
-            <EventDetailsForm key={event.revision} event={event} onReload={() => query.refetch()} />
-          </Card>
-        </TabsContent>
-        <TabsContent value="seat-map">
-          <Card className="p-6 text-gray-600">The seat-map builder comes on Day 9.</Card>
-        </TabsContent>
-        <TabsContent value="publish">
-          <Card className="p-6">
-            <PublishChecklist event={event} />
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  return <Editor event={query.data} refetch={() => query.refetch().then((r) => r.data)} />;
 }

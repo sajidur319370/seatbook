@@ -93,6 +93,7 @@ describe('save the seat map', () => {
     expect(saved.body.error.details[0]).toMatchObject({
       issue: 'OVERLAP',
       seats: ['L-A5', 'R-A1'],
+      path: ['sections', 1, 'rows', 0],
     });
   });
 
@@ -327,6 +328,21 @@ describe('unpublish', () => {
     const res = await as(org.token).post(unpublishUrl(draft.id));
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('EVENT_NOT_PUBLISHED');
+  });
+
+  it('clears the sales dates publish filled in, and keeps ones the organizer chose', async () => {
+    const org = await makeOrganizer();
+    const { eventId } = await makePublishedEvent(org.token);
+    const res = await as(org.token).post(unpublishUrl(eventId));
+    expect(res.body.event.salesStartAt).toBeNull();
+    expect(res.body.event.salesEndAt).toBeNull();
+
+    const salesStartAt = addDays(new Date(), 1).toISOString();
+    const salesEndAt = addDays(new Date(), 2).toISOString();
+    const chosen = await makePublishedEvent(org.token, { salesStartAt, salesEndAt });
+    const kept = await as(org.token).post(unpublishUrl(chosen.eventId));
+    expect(kept.body.event.salesStartAt).toBe(salesStartAt);
+    expect(kept.body.event.salesEndAt).toBe(salesEndAt);
   });
 
   it('can be published again, with a fresh set of seats', async () => {

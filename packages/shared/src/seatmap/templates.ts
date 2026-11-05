@@ -34,7 +34,7 @@ export function smallTheatre(): Template {
   };
 }
 
-/** ~600 seats: Orchestra (VIP front rows + Standard) and two Balcony wings (Value). */
+/** 552 seats: Orchestra (VIP front rows + Standard) and two Balcony wings (Value). */
 export function concertHall(): Template {
   const vip = { _id: newId(), name: 'VIP', price: 7500, color: 'purple' as const };
   const std = { _id: newId(), name: 'Standard', price: 4000, color: 'teal' as const };

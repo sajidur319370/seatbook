@@ -98,6 +98,14 @@ export async function publishEvent(ctx: Ctx, eventId: Types.ObjectId) {
 
 /** queries.md §5.4: back to draft, only with no bookings. */
 export async function unpublishEvent(ctx: Ctx, eventId: Types.ObjectId) {
+  // Publish fills in empty sales dates. Clear those, or moving the draft later would close sales
+  // early, and moving it earlier would fail with an error about a date nobody chose.
+  const before = await findOwnedEvent<EventLean>(ctx, eventId);
+  const defaulted = {
+    ...(before.salesStartAt?.getTime() === before.publishedAt?.getTime() && { salesStartAt: null }),
+    ...(before.salesEndAt?.getTime() === before.startsAt.getTime() && { salesEndAt: null }),
+  };
+
   await withTransaction(async (session) => {
     if (await Booking.exists({ eventId }).session(session))
       throw conflict('EVENT_HAS_BOOKINGS', 'This event already has bookings.');
@@ -105,7 +113,7 @@ export async function unpublishEvent(ctx: Ctx, eventId: Types.ObjectId) {
     const res = await Event.updateOne(
       { _id: eventId, organizerId: ctx.userId, status: 'published' },
       {
-        $set: { status: 'draft', publishedAt: null, counters: ZERO_COUNTERS },
+        $set: { status: 'draft', publishedAt: null, counters: ZERO_COUNTERS, ...defaulted },
         $inc: { revision: 1 },
       },
       { session },

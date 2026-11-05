@@ -113,6 +113,8 @@ describe('validateLayout', () => {
     const b = section({ _id: 'c'.repeat(24), code: 'B', x: 11 }); // lands on ORC's seats
     const overlap = validateLayout(layout([a, b])).find((i) => i.params?.issue === 'OVERLAP');
     expect(overlap?.params?.seats).toEqual(['ORC-A2', 'B-A1']);
+    expect(overlap?.path).toEqual(['sections', 1, 'rows', 0]); // the builder shows it on both rows
+    expect(overlap?.params?.otherPath).toEqual(['sections', 0, 'rows', 0]);
   });
 
   it('reports only the first overlaps of a fully stacked layout', () => {

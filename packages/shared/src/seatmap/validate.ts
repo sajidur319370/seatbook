@@ -78,7 +78,14 @@ export function validateLayout(m: SeatMapInput): LayoutIssue[] {
     return issues; // positions don't matter until the layout is small enough
   }
 
-  const at = new Map<string, string>();
+  const sectionIndex = new Map(m.sections.map((s, i) => [s._id, i]));
+  const pathOf = (seat: (typeof seats)[number]) => {
+    const si = sectionIndex.get(seat.sectionId) ?? 0;
+    const ri = m.sections[si]?.rows.findIndex((r) => r.label === seat.row) ?? 0;
+    return ['sections', si, 'rows', ri];
+  };
+
+  const at = new Map<string, (typeof seats)[number]>();
   let seatIssues = 0;
   for (const seat of seats) {
     if (seatIssues >= MAX_SEAT_ISSUES) break;
@@ -87,15 +94,16 @@ export function validateLayout(m: SeatMapInput): LayoutIssue[] {
     if (other) {
       seatIssues += 1;
       issues.push({
-        path: ['sections'],
-        message: `${seat.label} overlaps ${other}`,
-        params: { issue: 'OVERLAP', seats: [other, seat.label] },
+        path: pathOf(seat),
+        message: `${seat.label} overlaps ${other.label}`,
+        // Both seats' rows are involved, so the builder shows it on both.
+        params: { issue: 'OVERLAP', seats: [other.label, seat.label], otherPath: pathOf(other) },
       });
-    } else at.set(key, seat.label);
+    } else at.set(key, seat);
     if (seat.x > LIMITS.gridSize || seat.y > LIMITS.gridSize) {
       seatIssues += 1;
       issues.push({
-        path: ['sections'],
+        path: pathOf(seat),
         message: `${seat.label} is off the map`,
         params: { issue: 'OUT_OF_BOUNDS' },
       });
