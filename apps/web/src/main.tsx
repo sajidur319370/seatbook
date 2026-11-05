@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <TooltipProvider>
         <RouterProvider router={router} />
       </TooltipProvider>
-      <Toaster richColors position="bottom-right" />
+      <Toaster richColors position="bottom-right" mobileOffset={{ bottom: 64 }} />
     </QueryClientProvider>
   </StrictMode>,
 );

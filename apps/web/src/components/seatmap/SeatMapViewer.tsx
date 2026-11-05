@@ -1,12 +1,26 @@
-import { memo, useMemo, useRef, useState, type MouseEvent, type SyntheticEvent } from 'react';
+import {
+  memo,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  type SyntheticEvent,
+} from 'react';
 import { Maximize, Minus, Plus } from 'lucide-react';
-import { TransformComponent, TransformWrapper, useControls } from 'react-zoom-pan-pinch';
+import {
+  TransformComponent,
+  TransformWrapper,
+  useControls,
+  type ReactZoomPanPinchContentRef,
+} from 'react-zoom-pan-pinch';
 import { formatMoney, type SeatMapResponse, type TierInput } from '@seatbook/shared';
 import { Button } from '@/components/ui/button';
 import { CELL, PAD, SEAT_R, bounds, viewBox } from './geometry';
-import { Seat, type SeatVisual } from './Seat';
+import { STATUS_TEXT, Seat, type SeatVisual } from './Seat';
 import { TIER_HEX } from './tierColors';
-import { useRenderSeats, type RenderSeat } from './useSeatCells';
+import { nearestSeat, useRenderSeats, type RenderSeat } from './useSeatCells';
 
 /** A press that moved further than this was a drag across the map, not a click on a seat. */
 const DRAG_PX = 5;
@@ -19,16 +33,6 @@ function maxScaleFor(b: ReturnType<typeof bounds>) {
   const cells = Math.max(b.maxX - b.minX, b.maxY - b.minY) + 2 * PAD + 1;
   return Math.max(8, Math.ceil((24 / (2 * SEAT_R)) * ((cells * CELL) / 280)));
 }
-
-const STATUS_TEXT: Record<SeatVisual, string> = {
-  available: 'Available',
-  held: 'Held by someone else',
-  booked: 'Sold',
-  blocked: 'Not for sale',
-  mine: 'Selected by you',
-  pending: 'Selecting…',
-  dimmed: '',
-};
 
 function ZoomButtons() {
   const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -81,25 +85,34 @@ const SeatLayer = memo(function SeatLayer(props: {
   visualOf: (id: string) => SeatVisual;
   highlightTier: number | null;
   interactive: boolean;
+  tabbableId: string | null;
 }) {
   return (
     <>
-      {props.seats.map((s) => (
-        <Seat
-          key={s.id}
-          id={s.id}
-          x={s.x}
-          y={s.y}
-          label={s.label}
-          tierColor={props.colors[s.tierIndex]!}
-          visual={
-            props.highlightTier !== null && s.tierIndex !== props.highlightTier
-              ? 'dimmed'
-              : props.visualOf(s.id)
-          }
-          interactive={props.interactive}
-        />
-      ))}
+      {props.seats.map((s) => {
+        const visual = props.visualOf(s.id);
+        return (
+          <Seat
+            key={s.id}
+            id={s.id}
+            x={s.x}
+            y={s.y}
+            label={s.label}
+            description={s.description}
+            tierColor={props.colors[s.tierIndex]!}
+            visual={visual}
+            // Your own seats never fade: you must always be able to see what you hold.
+            dimmed={
+              props.highlightTier !== null &&
+              s.tierIndex !== props.highlightTier &&
+              visual !== 'mine' &&
+              visual !== 'pending'
+            }
+            interactive={props.interactive}
+            tabbable={s.id === props.tabbableId}
+          />
+        );
+      })}
     </>
   );
 });
@@ -120,6 +133,14 @@ export function SeatMapViewer(props: {
   const b = useMemo(() => bounds(seats), [seats]);
   const [hover, setHover] = useState<RenderSeat | null>(null);
   const pressedAt = useRef<{ x: number; y: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const transform = useRef<ReactZoomPanPinchContentRef>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const tabbableId = useMemo(() => {
+    if (!onSeatClick) return null;
+    if (focusId) return focusId;
+    return (seats.find((s) => visualOf(s.id) === 'available') ?? seats[0])?.id ?? null;
+  }, [onSeatClick, focusId, seats, visualOf]);
   const [zoomedIn, setZoomedIn] = useState(false);
   // On a page, one finger must still scroll past the map. It only pans once the map is zoomed in.
   const fingerScrollsPage = embedded && !zoomedIn;
@@ -134,13 +155,73 @@ export function SeatMapViewer(props: {
     if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > DRAG_PX) return;
     const seat = seatFrom(e);
     if (!seat) return;
-    if (onSeatClick) onSeatClick(seat);
-    else setHover(seat); // a phone has no hover: tapping shows the same details
+    if (onSeatClick) {
+      setFocusId(seat.id);
+      onSeatClick(seat);
+    } else {
+      setHover(seat); // a phone has no hover: tapping shows the same details
+    }
+  };
+
+  /** Pans just enough to keep the focused seat on screen when the map is zoomed in. */
+  const keepInView = (el: Element) => {
+    const api = transform.current;
+    if (!api) return;
+    const area = api.instance.wrapperComponent?.getBoundingClientRect();
+    if (!area) return;
+    const seat = el.getBoundingClientRect();
+    const margin = 32;
+    const dx =
+      seat.left < area.left + margin
+        ? area.left + margin - seat.left
+        : seat.right > area.right - margin
+          ? area.right - margin - seat.right
+          : 0;
+    const dy =
+      seat.top < area.top + margin
+        ? area.top + margin - seat.top
+        : seat.bottom > area.bottom - margin
+          ? area.bottom - margin - seat.bottom
+          : 0;
+    if (!dx && !dy) return;
+    const { positionX, positionY, scale } = api.instance.state;
+    api.setTransform(positionX + dx, positionY + dy, scale, 120);
+  };
+
+  // NFR-A11Y-03: arrow keys move between seats; Enter or Space acts on the focused one.
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!onSeatClick) return;
+    const current = seatFrom(e);
+    if (!current) return;
+    if (
+      e.key === 'ArrowUp' ||
+      e.key === 'ArrowDown' ||
+      e.key === 'ArrowLeft' ||
+      e.key === 'ArrowRight'
+    ) {
+      e.preventDefault();
+      const next = nearestSeat(seats, current, e.key);
+      if (!next) return;
+      setFocusId(next.id);
+      const el = svgRef.current?.querySelector<SVGGElement>(`[data-seat-id="${next.id}"]`);
+      el?.focus({ preventScroll: true });
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSeatClick(current);
+    }
+  };
+
+  const onFocus = (e: FocusEvent) => {
+    setHover(seatFrom(e));
+    // Tab and arrow keys can land off screen. A click lands on a seat you can already see.
+    const el = e.target as Element;
+    if (el.matches(':focus-visible')) keepInView(el);
   };
 
   return (
     <div className="relative rounded-xl border bg-white">
       <TransformWrapper
+        ref={transform}
         minScale={0.6}
         maxScale={maxScaleFor(b)}
         centerOnInit
@@ -157,14 +238,22 @@ export function SeatMapViewer(props: {
         >
           {/* One set of handlers here, not 5,000 on the seats. */}
           <svg
+            ref={svgRef}
             viewBox={viewBox(b)}
             role="group"
-            aria-label="Seat map"
+            aria-label={
+              onSeatClick
+                ? 'Seat map. Use the arrow keys to move between seats, and Enter to select one.'
+                : 'Seat map'
+            }
             className={`h-full w-full select-none ${fingerScrollsPage ? 'touch-pan-y' : 'touch-none'}`}
             onPointerDown={(e) => {
               pressedAt.current = { x: e.clientX, y: e.clientY };
             }}
             onClick={onClick}
+            onKeyDown={onKeyDown}
+            onFocus={onFocus}
+            onBlur={() => setHover(null)}
             onMouseMove={(e) => setHover(seatFrom(e))}
             onMouseLeave={() => setHover(null)}
           >
@@ -203,6 +292,7 @@ export function SeatMapViewer(props: {
               visualOf={visualOf}
               highlightTier={props.highlightTier ?? null}
               interactive={!!onSeatClick}
+              tabbableId={tabbableId}
             />
           </svg>
         </TransformComponent>

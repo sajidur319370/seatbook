@@ -2,15 +2,23 @@ import { memo } from 'react';
 import { CELL, SEAT_R } from './geometry';
 import { STATUS_HEX } from './tierColors';
 
-export type SeatVisual =
-  'available' | 'held' | 'booked' | 'blocked' | 'mine' | 'pending' | 'dimmed';
+export type SeatVisual = 'available' | 'held' | 'booked' | 'blocked' | 'mine' | 'pending';
+
+export const STATUS_TEXT: Record<SeatVisual, string> = {
+  available: 'Available',
+  held: 'Held by someone else',
+  booked: 'Sold',
+  blocked: 'Not for sale',
+  mine: 'Selected by you',
+  pending: 'Updating…',
+};
 
 const FILL: Record<Exclude<SeatVisual, 'available' | 'mine' | 'pending'>, string> = {
   held: STATUS_HEX.held,
   booked: '#d1d5db',
   blocked: 'url(#hatch)',
-  dimmed: '#e5e7eb',
 };
+const DIMMED_FILL = '#e5e7eb';
 
 const checkPath = (cx: number, cy: number) => `M${cx - 2.2} ${cy} l1.6 1.6 l3 -3.2`;
 const crossPath = (cx: number, cy: number) =>
@@ -23,21 +31,34 @@ export const Seat = memo(function Seat(p: {
   y: number;
   tierColor: string;
   visual: SeatVisual;
+  /** Faded by the legend's tier highlight. It's still what `visual` says it is. */
+  dimmed: boolean;
   label: string;
+  description: string;
   interactive: boolean;
+  /** Roving tabindex: 5,000 tab stops would be unusable, so only one seat takes focus. */
+  tabbable: boolean;
 }) {
   const cx = p.x * CELL;
   const cy = p.y * CELL;
-  const fill =
-    p.visual === 'available' || p.visual === 'mine' || p.visual === 'pending'
+  const fill = p.dimmed
+    ? DIMMED_FILL
+    : p.visual === 'available' || p.visual === 'mine' || p.visual === 'pending'
       ? p.tierColor
       : FILL[p.visual];
   return (
     <g
       data-seat-id={p.id}
       data-seat={p.label}
-      data-visual={p.visual}
-      className={p.interactive ? 'cursor-pointer' : undefined}
+      data-visual={p.dimmed ? 'dimmed' : p.visual}
+      {...(p.interactive && {
+        role: 'button',
+        tabIndex: p.tabbable ? 0 : -1,
+        'aria-label': `${p.description}, ${STATUS_TEXT[p.visual]}`,
+        'aria-pressed': p.visual === 'mine',
+        className:
+          'cursor-pointer outline-none [&:focus-visible>circle:first-of-type]:stroke-black [&:focus-visible>circle:first-of-type]:[stroke-width:2.5]',
+      })}
     >
       <circle
         cx={cx}
@@ -52,8 +73,8 @@ export const Seat = memo(function Seat(p: {
       {p.visual === 'mine' && (
         <path d={checkPath(cx, cy)} stroke="white" strokeWidth={1.4} fill="none" />
       )}
-      {p.visual === 'held' && <circle cx={cx} cy={cy} r={1.4} fill="white" />}
-      {p.visual === 'booked' && (
+      {p.visual === 'held' && !p.dimmed && <circle cx={cx} cy={cy} r={1.4} fill="white" />}
+      {p.visual === 'booked' && !p.dimmed && (
         <path d={crossPath(cx, cy)} stroke="#6b7280" strokeWidth={1} fill="none" />
       )}
     </g>

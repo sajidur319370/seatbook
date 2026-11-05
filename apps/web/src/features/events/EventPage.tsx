@@ -15,7 +15,7 @@ import { formatEventTime, viewerTimeIfDifferent } from '@/lib/eventTime';
 import { SWATCH } from '@/lib/palette';
 import { useEvent, useSeatMap } from './usePublicEvents';
 
-/** Read-only for now: each seat just shows its status. Day 13 adds "mine" and "pending". */
+/** Read-only: each seat just shows its status. Choosing seats adds "mine" and "pending". */
 export function useStatusVisuals(data: SeatMapResponse | undefined) {
   const statusById = useMemo(
     () => new Map(data?.seats.map((c) => [c.id, c.st]) ?? []),

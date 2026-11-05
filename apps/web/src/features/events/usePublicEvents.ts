@@ -3,6 +3,7 @@ import type { PublicEventDto, SeatMapResponse } from '@seatbook/shared';
 import { http } from '@/api/client';
 import { qk } from '@/api/keys';
 import { useMe } from '@/features/auth/useMe';
+import { timed } from '@/lib/serverClock';
 
 export interface EventFilters {
   q?: string;
@@ -45,7 +46,7 @@ export function useEvent(slug: string) {
 export const useSeatMap = (eventId: string | undefined) =>
   useQuery({
     queryKey: qk.seatMap(eventId!),
-    queryFn: () => http.get<SeatMapResponse>(`/events/${eventId}/seats`),
+    queryFn: () => timed(() => http.get<SeatMapResponse>(`/events/${eventId}/seats`)),
     enabled: !!eventId,
     staleTime: 30_000, // Day 15: sockets keep it fresh instead
   });

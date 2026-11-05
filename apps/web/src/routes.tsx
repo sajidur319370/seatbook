@@ -17,8 +17,11 @@ import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage';
 const EventPage = lazy(() =>
   import('@/features/events/EventPage').then((m) => ({ default: m.EventPage })),
 );
-const SeatsPage = lazy(() =>
-  import('@/features/events/SeatsPage').then((m) => ({ default: m.SeatsPage })),
+const SeatSelectionPage = lazy(() =>
+  import('@/features/seats/SeatSelectionPage').then((m) => ({ default: m.SeatSelectionPage })),
+);
+const CheckoutSoonPage = lazy(() =>
+  import('@/features/seats/CheckoutSoonPage').then((m) => ({ default: m.CheckoutSoonPage })),
 );
 
 // Lazy, so attendees never download the organizer and admin areas (NFR-PERF-08).
@@ -59,7 +62,8 @@ export const router = createBrowserRouter(
         <Route path="/e/:slug" element={<EventPage />} />
 
         <Route element={<RequireAuth />}>
-          <Route path="/e/:slug/seats" element={<SeatsPage />} />
+          <Route path="/e/:slug/seats" element={<SeatSelectionPage />} />
+          <Route path="/e/:slug/checkout" element={<CheckoutSoonPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/become-organizer" element={<BecomeOrganizerPage />} />
 

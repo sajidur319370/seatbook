@@ -6,5 +6,5 @@ export const qk = {
   myEvents: (status?: string) => ['organizer', 'events', status ?? 'all'] as const,
   organizerEvent: (id: string) => ['organizer', 'event', id] as const,
   seatMap: (id: string) => ['seatmap', id] as const,
-  // Day 11+: holds…
+  hold: (eventId: string) => ['hold', eventId] as const,
 };
