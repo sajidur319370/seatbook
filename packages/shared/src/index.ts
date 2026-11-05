@@ -7,4 +7,5 @@ export * from './schemas/common';
 export * from './schemas/auth';
 export * from './schemas/applications';
 export * from './schemas/events';
+export * from './schemas/holds';
 export * from './seatmap';

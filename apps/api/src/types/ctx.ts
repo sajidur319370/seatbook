@@ -1,4 +1,4 @@
-import type { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { ROLE_LEVEL, type Role } from '@seatbook/shared';
 
 export interface Ctx {
@@ -28,3 +28,15 @@ export function makeCtx(p: {
     now: p.now ?? (() => new Date()),
   };
 }
+
+export const SYSTEM_USER_ID = new Types.ObjectId('000000000000000000000000');
+
+/** For jobs and admin side effects: the actor is SeatBook itself, not a person. */
+export const systemCtx = (now = new Date()): Ctx =>
+  makeCtx({
+    userId: SYSTEM_USER_ID,
+    role: 'admin',
+    name: 'SeatBook',
+    email: 'system@seatbook.dev',
+    now: () => now,
+  });

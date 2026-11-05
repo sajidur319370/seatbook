@@ -307,7 +307,11 @@ describe('unpublish', () => {
   it('releases active holds', async () => {
     const org = await makeOrganizer();
     const { eventId } = await makePublishedEvent(org.token);
-    const hold = await Hold.create({ eventId, userId: new Types.ObjectId() });
+    const hold = await Hold.create({
+      eventId,
+      userId: new Types.ObjectId(),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
     await as(org.token).post(unpublishUrl(eventId));
     expect((await Hold.findOne({ _id: hold._id }).lean())?.status).toBe('released');
   });

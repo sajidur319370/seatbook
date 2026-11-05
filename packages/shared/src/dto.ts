@@ -114,3 +114,29 @@ export interface SeatMapResponse {
 export const seatLabel = (sectionCode: string, row: string, n: number) =>
   `${sectionCode}-${row}${n}`;
 // More DTOs are added day by day.
+
+export interface HeldSeatDto {
+  id: Id;
+  label: string;
+  section: string;
+  row: string;
+  number: number;
+  tierId: Id;
+  tierName: string;
+  price: number;
+}
+
+export interface HoldDto {
+  id: Id;
+  eventId: Id;
+  expiresAt: string; // ISO; countdown = expiresAt - (Date.now() + clockOffset)
+  checkoutInProgress: boolean;
+  seats: HeldSeatDto[];
+  total: number;
+  currency: Currency;
+}
+
+export interface HoldResponse {
+  serverTime: string; // FR-HOLD-10
+  hold: HoldDto | null;
+}

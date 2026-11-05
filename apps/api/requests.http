@@ -27,3 +27,22 @@ Content-Type: application/json
 
 ### Log out
 POST {{base}}/auth/logout
+
+### Hold a seat (paste an eventId and a seatId from Compass)
+POST {{base}}/events/{{eventId}}/hold/seats
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "seatId": "{{seatId}}" }
+
+### My hold
+GET {{base}}/events/{{eventId}}/hold
+Authorization: Bearer {{token}}
+
+### Release one seat
+DELETE {{base}}/events/{{eventId}}/hold/seats/{{seatId}}
+Authorization: Bearer {{token}}
+
+### Release all my seats
+DELETE {{base}}/events/{{eventId}}/hold
+Authorization: Bearer {{token}}

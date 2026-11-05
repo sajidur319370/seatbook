@@ -118,7 +118,32 @@ const ROWS: Row[] = [
     path: (f) => `/api/organizer/events/${f.eventId}/unpublish`,
     perm: 'event:manage',
   },
-  // Day 11: hold rows, Day 16: checkout, Day 18: check-in, Day 19: dashboards
+  {
+    name: 'hold seat',
+    method: 'post',
+    path: (f) => `/api/events/${f.eventId}/hold/seats`,
+    perm: 'seat:hold',
+    body: () => ({ seatId: '000000000000000000000001' }),
+  },
+  {
+    name: 'release seat',
+    method: 'delete',
+    path: (f) => `/api/events/${f.eventId}/hold/seats/000000000000000000000001`,
+    perm: 'seat:hold',
+  },
+  {
+    name: 'my hold',
+    method: 'get',
+    path: (f) => `/api/events/${f.eventId}/hold`,
+    perm: 'seat:hold',
+  },
+  {
+    name: 'release all',
+    method: 'delete',
+    path: (f) => `/api/events/${f.eventId}/hold`,
+    perm: 'seat:hold',
+  },
+  // Day 16: checkout, Day 18: check-in, Day 19: dashboards
 ];
 
 describe('RBAC matrix', () => {

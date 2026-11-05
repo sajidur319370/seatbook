@@ -1,13 +1,14 @@
 import type { Types } from 'mongoose';
 import type { Role } from '@seatbook/shared';
-import { Event, OrganizerApplication, Session, User } from '../../db/models';
+import { Event, Hold, OrganizerApplication, Session, User, type HoldLean } from '../../db/models';
 import { withTransaction } from '../../db/transaction';
 import { conflict, forbidden, notFound } from '../../lib/errors';
 import { decodeCursor, encodeCursor } from '../../lib/cursor';
 import { escapeRegex } from '../../lib/regex';
 import { sendMail } from '../../mail/mailer';
 import { applicationApproved, applicationRejected, accountSuspended } from '../../mail/templates';
-import type { Ctx } from '../../types/ctx';
+import { releaseAllSeats } from '../holds/hold.service';
+import { systemCtx, type Ctx } from '../../types/ctx';
 
 const alreadyReviewed = () =>
   conflict('APPLICATION_ALREADY_REVIEWED', 'This application was already reviewed.');
@@ -159,7 +160,11 @@ export async function updateUser(
       throw conflict('ALREADY_SUSPENDED', 'This user is already suspended.');
     }
     await Session.updateMany({ userId: targetId, revokedAt: null }, { $set: { revokedAt: now } });
-    // Day 11: release the user's active holds here (AC-ADM-02).
+    // Their seats go back on sale (AC-ADM-02).
+    const holds = await Hold.find({ userId: targetId, status: 'active' })
+      .select('_id eventId userId')
+      .lean<Pick<HoldLean, '_id' | 'eventId' | 'userId'>[]>();
+    for (const h of holds) await releaseAllSeats(systemCtx(now), h);
     sendMail({ to: u.email, ...accountSuspended(u.name, u.suspendedReason!) });
   }
 
