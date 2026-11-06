@@ -1,3 +1,4 @@
+import type { SeatChangeDto } from './events';
 import type {
   Currency,
   EventCategory,
@@ -139,4 +140,5 @@ export interface HoldDto {
 export interface HoldResponse {
   serverTime: string; // FR-HOLD-10
   hold: HoldDto | null;
+  changes?: SeatChangeDto[]; // what this request did to each seat: writes only
 }

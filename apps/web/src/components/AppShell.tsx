@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { Can } from '@/features/auth/permissions';
 import { useMe } from '@/features/auth/useMe';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAccountSocket } from '@/socket/useAccountSocket';
 import { UserMenu } from './UserMenu';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -11,6 +12,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 export function AppShell() {
   const me = useMe();
   const user = me.data?.user;
+  useAccountSocket(user?.id);
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="sticky top-0 z-40 border-b bg-white">

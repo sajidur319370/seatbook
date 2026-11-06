@@ -82,7 +82,7 @@ export async function api<T>(path: string, init: RequestOptions = {}): Promise<T
 const body = (b: unknown) => (b === undefined ? undefined : JSON.stringify(b));
 
 export const http = {
-  get: <T>(p: string) => api<T>(p),
+  get: <T>(p: string, o?: RequestOptions) => api<T>(p, o),
   post: <T>(p: string, b?: unknown, o?: RequestOptions) =>
     api<T>(p, { ...o, method: 'POST', body: body(b ?? {}) }),
   patch: <T>(p: string, b: unknown, o?: RequestOptions) =>

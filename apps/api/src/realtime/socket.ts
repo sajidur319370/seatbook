@@ -53,6 +53,8 @@ export function attachSocketServer(httpServer: HttpServer): IO {
     void socket.join(`user:${socket.data.userId}`); // FR-RT-02
     const isAdmin = socket.data.role === 'admin';
     const me = oid(socket.data.userId);
+    // A join waits for the database, and a leave doesn't. Only the latest request may take effect.
+    let latestEventRequest = 0;
 
     /**
      * Both joins: check the input, ask the database, answer. An error here must be caught, because
@@ -74,9 +76,9 @@ export function attachSocketServer(httpServer: HttpServer): IO {
         }
       };
 
-    socket.on(
-      'event:join',
-      handleJoin(
+    socket.on('event:join', (payload, ack) => {
+      const request = ++latestEventRequest;
+      void handleJoin(
         // Published events are public; drafts only for their organizer or an admin (FR-RT-03).
         (id) =>
           Event.exists({
@@ -84,13 +86,15 @@ export function attachSocketServer(httpServer: HttpServer): IO {
             ...(!isAdmin && { $or: [{ status: { $ne: 'draft' } }, { organizerId: me }] }),
           }),
         (id) => {
+          if (request !== latestEventRequest) return;
           for (const room of socket.rooms) if (room.startsWith('event:')) void socket.leave(room); // one map at a time
           void socket.join(`event:${id}`);
         },
-      ),
-    );
+      )(payload, ack);
+    });
 
     socket.on('event:leave', (payload) => {
+      latestEventRequest += 1;
       const p = eventPayload.safeParse(payload);
       if (p.success) void socket.leave(`event:${p.data.eventId}`);
     });

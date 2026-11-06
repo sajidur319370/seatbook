@@ -14,8 +14,8 @@ export function useMe() {
     queryKey: qk.me,
     queryFn: loadMe,
     staleTime: 5 * 60_000,
-    // Picks up a role change or suspension when the user comes back to the tab, however recent
-    // the last fetch was. Day 15 adds the instant socket event. Guests have nothing to refresh.
+    // The socket announces a role change or suspension at once. This is the safety net for when it
+    // can't connect: coming back to the tab still catches up. Guests have nothing to refresh.
     refetchOnWindowFocus: (query) => (query.state.data ? 'always' : false),
   });
 }

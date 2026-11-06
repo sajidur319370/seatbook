@@ -10,6 +10,8 @@ import type { RenderSeat } from '@/components/seatmap/useSeatCells';
 import { EventNotFound } from '@/features/events/EventPage';
 import { useEvent, useSeatMap } from '@/features/events/usePublicEvents';
 import { formatEventTime } from '@/lib/eventTime';
+import { ConnectionBanner } from '@/socket/ConnectionBanner';
+import { useEventSocket } from '@/socket/useEventSocket';
 import { CountdownBanner } from './CountdownBanner';
 import { SelectionPanel } from './SelectionPanel';
 import { useAddSeat, useMyHold, useReleaseAll, useRemoveSeat } from './useHold';
@@ -50,6 +52,7 @@ export function SeatSelectionPage() {
   const event = eventQuery.data?.event;
   const eventId = event?.id ?? '';
   const map = useSeatMap(event?.id);
+  useEventSocket(event?.id);
   const visualOf = useSeatVisuals(eventId, map.data);
   const hold = useMyHold(eventId).data?.hold ?? null;
   const add = useAddSeat(eventId);
@@ -104,6 +107,7 @@ export function SeatSelectionPage() {
             Choose a seat to hold it while you decide.
           </p>
         )}
+        <ConnectionBanner />
         {/* Above the map: on a phone, a finger on the map moves the map, not the page. */}
         <Legend data={map.data} highlightTier={highlightTier} onHighlight={setHighlightTier} />
         <SeatMapViewer

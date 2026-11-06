@@ -1,43 +1,50 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { HoldResponse, SeatCell, SeatMapResponse } from '@seatbook/shared';
+import type { HoldResponse, SeatCell, SeatChangeDto, SeatMapResponse } from '@seatbook/shared';
 import { ApiError, http } from '@/api/client';
 import { qk } from '@/api/keys';
 import { newMutationId } from '@/lib/mutationIds';
 import { serverNow, timed } from '@/lib/serverClock';
+import { applySeatChanges } from '@/socket/seatCache';
 import { usePending } from './pendingStore';
 
 export function useMyHold(eventId: string) {
+  const qc = useQueryClient();
   return useQuery({
     queryKey: qk.hold(eventId),
-    queryFn: () => timed(() => http.get<HoldResponse>(`/events/${eventId}/hold`)),
+    queryFn: async ({ signal }) => {
+      const res = await timed(() => http.get<HoldResponse>(`/events/${eventId}/hold`, { signal }));
+      // A click may have answered while this was on its way, and an older answer mustn't win.
+      const cur = qc.getQueryData<HoldResponse>(qk.hold(eventId));
+      return cur && cur.serverTime > res.serverTime ? cur : res;
+    },
     enabled: !!eventId,
   });
 }
 
-/** Patches seats in the cached map, keeping every other cell's identity (memo!). */
-export function patchSeats(
-  qc: QueryClient,
-  eventId: string,
-  seatIds: string[],
-  patch: Partial<SeatCell>,
-) {
-  const ids = new Set(seatIds);
-  qc.setQueryData<SeatMapResponse>(
-    qk.seatMap(eventId),
-    (d) => d && { ...d, seats: d.seats.map((c) => (ids.has(c.id) ? { ...c, ...patch } : c)) },
-  );
+/** Writes changes into the cached map with the version rule. Nothing changed means no new object. */
+export function applyMapChanges(qc: QueryClient, eventId: string, changes: SeatChangeDto[]) {
+  const map = qc.getQueryData<SeatMapResponse>(qk.seatMap(eventId));
+  if (!map) return;
+  const next = applySeatChanges(map, changes);
+  if (next !== map) qc.setQueryData(qk.seatMap(eventId), next);
 }
 
-export const patchSeat = (
+/** Patches one seat in the cached map, keeping every other cell's identity (memo!). */
+export function patchSeat(
   qc: QueryClient,
   eventId: string,
   seatId: string,
   patch: Partial<SeatCell>,
-) => patchSeats(qc, eventId, [seatId], patch);
+) {
+  qc.setQueryData<SeatMapResponse>(
+    qk.seatMap(eventId),
+    (d) => d && { ...d, seats: d.seats.map((c) => (c.id === seatId ? { ...c, ...patch } : c)) },
+  );
+}
 
 /** Fast clicks can answer out of order, and an older answer mustn't undo a newer one. */
-function applyHold(qc: QueryClient, eventId: string, res: HoldResponse) {
+export function applyHold(qc: QueryClient, eventId: string, res: HoldResponse) {
   qc.setQueryData<HoldResponse>(qk.hold(eventId), (cur) =>
     !cur || cur.serverTime <= res.serverTime ? res : cur,
   );
@@ -64,6 +71,7 @@ export function useAddSeat(eventId: string) {
   const qc = useQueryClient();
 
   return useMutation({
+    networkMode: 'always', // offline, fail now. Paused, the click would take a seat minutes later.
     mutationFn: async (seatId: string) => {
       const send = () =>
         timed(() =>
@@ -82,11 +90,9 @@ export function useAddSeat(eventId: string) {
       }
     },
     onMutate: (seatId) => usePending.getState().add(seatId),
-    onSuccess: (res, seatId) => {
+    onSuccess: (res) => {
       applyHold(qc, eventId, res);
-      if (res.hold?.seats.some((s) => s.id === seatId)) {
-        patchSeat(qc, eventId, seatId, { st: 'held', exp: res.hold.expiresAt });
-      }
+      applyMapChanges(qc, eventId, res.changes ?? []);
     },
     onError: (err, seatId) => {
       if (!(err instanceof ApiError)) {
@@ -134,6 +140,7 @@ function releaseFailed(qc: QueryClient, eventId: string, err: unknown) {
 export function useRemoveSeat(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
+    networkMode: 'always',
     mutationFn: (seatId: string) =>
       timed(() =>
         http.delete<HoldResponse>(`/events/${eventId}/hold/seats/${seatId}`, undefined, {
@@ -141,9 +148,9 @@ export function useRemoveSeat(eventId: string) {
         }),
       ),
     onMutate: (seatId) => usePending.getState().add(seatId), // a second click can't send it twice
-    onSuccess: (res, seatId) => {
+    onSuccess: (res) => {
       applyHold(qc, eventId, res);
-      patchSeat(qc, eventId, seatId, { st: 'available', exp: undefined });
+      applyMapChanges(qc, eventId, res.changes ?? []);
     },
     onError: (err) => releaseFailed(qc, eventId, err),
     onSettled: (_d, _e, seatId) => finish(qc, eventId, [seatId]),
@@ -153,6 +160,7 @@ export function useRemoveSeat(eventId: string) {
 export function useReleaseAll(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
+    networkMode: 'always',
     mutationFn: (_seatIds: string[]) =>
       timed(() =>
         http.delete<HoldResponse>(`/events/${eventId}/hold`, undefined, {
@@ -160,9 +168,9 @@ export function useReleaseAll(eventId: string) {
         }),
       ),
     onMutate: (seatIds) => seatIds.forEach((id) => usePending.getState().add(id)),
-    onSuccess: (res, seatIds) => {
+    onSuccess: (res) => {
       applyHold(qc, eventId, res);
-      patchSeats(qc, eventId, seatIds, { st: 'available', exp: undefined });
+      applyMapChanges(qc, eventId, res.changes ?? []);
     },
     onError: (err) => releaseFailed(qc, eventId, err),
     onSettled: (_d, _e, seatIds) => finish(qc, eventId, seatIds),

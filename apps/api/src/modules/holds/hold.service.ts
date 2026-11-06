@@ -202,7 +202,7 @@ export async function addSeat(ctx: Ctx, eventId: Types.ObjectId, seatId: Types.O
       { type: 'seats.changed', eventId: ev._id, changes: [toSeatChange(claimed)] },
       { type: 'hold.changed', userId: ctx.userId, eventId: ev._id, reason: 'seat_added' },
     ]);
-    return holdView(ctx, hold._id, now);
+    return { ...(await holdView(ctx, hold._id, now)), changes: [toSeatChange(claimed)] };
   }
   throw gone('HOLD_EXPIRED', 'Your hold expired. Please try again.');
 }
@@ -236,7 +236,7 @@ export async function removeSeat(ctx: Ctx, eventId: Types.ObjectId, seatId: Type
     ...(seat ? [{ type: 'seats.changed' as const, eventId, changes: [toSeatChange(seat)] }] : []),
     { type: 'hold.changed' as const, userId: ctx.userId, eventId, reason: 'seat_removed' as const },
   ]);
-  return holdView(ctx, hold._id, now);
+  return { ...(await holdView(ctx, hold._id, now)), changes: seat ? [toSeatChange(seat)] : [] };
 }
 
 /**
@@ -268,6 +268,7 @@ export async function releaseAllSeats(
       reason: 'released' as const,
     },
   ]);
+  return changes;
 }
 
 /** The buyer's own "release all" (FR-HOLD-08), which respects a running payment. */
@@ -280,8 +281,8 @@ export async function releaseMyHold(ctx: Ctx, eventId: Types.ObjectId) {
   }).lean<HoldLean>();
   if (!hold) throw notFound();
   assertNoCheckout(hold, now);
-  await releaseAllSeats(ctx, hold);
-  return holdView(ctx, null, now);
+  const changes = await releaseAllSeats(ctx, hold);
+  return { ...(await holdView(ctx, null, now)), changes };
 }
 
 /** The same view for a broadcast, which has no request to read the user from. */

@@ -179,6 +179,39 @@ describe('realtime', () => {
       await silence;
     });
 
+    it('a slow join can’t undo a later one, or a leave', async () => {
+      const [rafi, mina] = await makeBuyers(2);
+      const second = await makePublishedEvent(org.token);
+      const slowly = () => {
+        const real = Event.exists.bind(Event);
+        vi.spyOn(Event, 'exists').mockImplementationOnce(((filter: never) =>
+          new Promise((r) => setTimeout(r, 150)).then(() => real(filter))) as never);
+      };
+
+      const s = await socketFor(mina!.token);
+      slowly();
+      const first = emitAck(s, 'event:join', { eventId });
+      await emitAck(s, 'event:join', { eventId: second.eventId });
+      await first;
+      const silence = expectNoEvent(s, 'seats:changed');
+      await hold(rafi!.token);
+      await silence;
+      const heard = nextEvent(s, 'seats:changed');
+      await as(rafi!.token)
+        .post(`${holdUrl(second.eventId)}/seats`)
+        .send({ seatId: second.seats[0]!.id });
+      await heard;
+
+      const t = await socketFor(mina!.token);
+      slowly();
+      const joining = emitAck(t, 'event:join', { eventId });
+      t.emit('event:leave', { eventId });
+      await joining;
+      const quiet = expectNoEvent(t, 'seats:changed');
+      await hold(rafi!.token, 1);
+      await quiet;
+    });
+
     it('event:leave stops the messages', async () => {
       const [rafi, mina] = await makeBuyers(2);
       const s = await viewerOf(mina!.token, eventId);
@@ -255,6 +288,23 @@ describe('realtime', () => {
       const got = await messages;
       expect(got).toHaveLength(1);
       expect(got[0]!.changes).toHaveLength(3);
+    });
+
+    it('each write answers with what it did, version included', async () => {
+      const [rafi] = await makeBuyers(1);
+      const added = await hold(rafi!.token);
+      expect(added.body.changes).toEqual([
+        { seatId: seats[0]!.id, status: 'held', version: 2, holdExpiresAt: expect.any(String) },
+      ]);
+      const removed = await as(rafi!.token).delete(`${holdUrl(eventId)}/seats/${seats[0]!.id}`);
+      expect(removed.body.changes).toEqual([
+        { seatId: seats[0]!.id, status: 'available', version: 3, holdExpiresAt: null },
+      ]);
+      await hold(rafi!.token, 1);
+      await hold(rafi!.token, 2);
+      const all = await as(rafi!.token).delete(holdUrl(eventId));
+      expect(all.body.changes).toHaveLength(2);
+      expect((await as(rafi!.token).get(holdUrl(eventId))).body).not.toHaveProperty('changes');
     });
 
     it("a failed click sends nothing: the seat didn't change", async () => {

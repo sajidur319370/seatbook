@@ -13,6 +13,7 @@ import { useMe } from '@/features/auth/useMe';
 import { PhaseBadge } from '@/components/PhaseBadge';
 import { formatEventTime, viewerTimeIfDifferent } from '@/lib/eventTime';
 import { SWATCH } from '@/lib/palette';
+import { useEventSocket } from '@/socket/useEventSocket';
 import { useEvent, useSeatMap } from './usePublicEvents';
 
 /** Read-only: each seat just shows its status. Choosing seats adds "mine" and "pending". */
@@ -114,6 +115,7 @@ export function EventPage() {
   const query = useEvent(slug);
   const event = query.data?.event;
   const map = useSeatMap(event?.id);
+  useEventSocket(event?.id);
   const visualOf = useStatusVisuals(map.data);
   const [highlightTier, setHighlightTier] = useState<number | null>(null);
 
