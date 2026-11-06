@@ -4,9 +4,11 @@ import { env } from './config/env';
 import { connectDb, disconnectDb } from './db/connection';
 import { startSweeper, stopSweeper } from './jobs/holdSweeper';
 import { logger } from './lib/logger';
+import { attachSocketServer } from './realtime/socket';
 
 const app = createApp();
-const server = createServer(app); // a raw http server: Socket.io attaches to it on Day 14
+const server = createServer(app);
+const io = attachSocketServer(server);
 
 await connectDb();
 server.listen(env.PORT, () => logger.info(`API listening on http://localhost:${env.PORT}`));
@@ -25,7 +27,7 @@ async function shutdown(signal: string) {
   }, 10_000).unref();
 
   await stopSweeper(); // 1. no half-finished sweep
-  await new Promise((resolve) => server.close(resolve)); // 2. stop accepting, finish what's in flight
+  await io.close(); // 2. drop sockets, stop accepting, finish what's in flight (this closes `server` too)
   await disconnectDb(); // 3. nothing needs the database now
   process.exit(0);
 }

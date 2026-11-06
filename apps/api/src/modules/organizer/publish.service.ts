@@ -1,7 +1,8 @@
 import type { Types } from 'mongoose';
 import { generateSeats, scheduleIssues, validateLayout } from '@seatbook/shared';
-import { Booking, Event, Hold, Seat, type EventLean } from '../../db/models';
+import { Booking, Event, Hold, Seat, type EventLean, type HoldLean } from '../../db/models';
 import { withTransaction } from '../../db/transaction';
+import { publish } from '../../events/publish';
 import { badRequest, conflict } from '../../lib/errors';
 import { toSeatMapDto } from '../events/event.dto';
 import { findOwnedEvent } from '../events/scope';
@@ -106,6 +107,7 @@ export async function unpublishEvent(ctx: Ctx, eventId: Types.ObjectId) {
     ...(before.salesEndAt?.getTime() === before.startsAt.getTime() && { salesEndAt: null }),
   };
 
+  let holders: Pick<HoldLean, 'userId'>[] = [];
   await withTransaction(async (session) => {
     if (await Booking.exists({ eventId }).session(session))
       throw conflict('EVENT_HAS_BOOKINGS', 'This event already has bookings.');
@@ -121,6 +123,10 @@ export async function unpublishEvent(ctx: Ctx, eventId: Types.ObjectId) {
     if (res.modifiedCount === 0)
       throw conflict('EVENT_NOT_PUBLISHED', 'This event is not published.');
 
+    holders = await Hold.find({ eventId, status: 'active' })
+      .select('userId')
+      .session(session)
+      .lean<Pick<HoldLean, 'userId'>[]>();
     await Hold.updateMany(
       { eventId, status: 'active' },
       { $set: { status: 'released' } },
@@ -128,7 +134,15 @@ export async function unpublishEvent(ctx: Ctx, eventId: Types.ObjectId) {
     );
     await Seat.deleteMany({ eventId }, { session });
   });
-  // Day 14: event:updated { phase: 'draft' } to event:<id>; hold:changed null to each holder (E13)
+  await publish(ctx, [
+    { type: 'event.updated', eventId },
+    ...holders.map((h) => ({
+      type: 'hold.changed' as const,
+      userId: h.userId,
+      eventId,
+      reason: 'released' as const,
+    })),
+  ]); // E13
 
   return findOwnedEvent<EventLean>(ctx, eventId);
 }

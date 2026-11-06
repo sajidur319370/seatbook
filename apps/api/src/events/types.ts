@@ -1,5 +1,5 @@
 import type { Types } from 'mongoose';
-import type { SeatStatus } from '@seatbook/shared';
+import type { Role, SeatStatus } from '@seatbook/shared';
 
 export interface SeatChange {
   seatId: string;
@@ -16,5 +16,13 @@ export type DomainEvent =
       eventId: Types.ObjectId;
       reason:
         'seat_added' | 'seat_removed' | 'released' | 'expired' | 'converted' | 'payment_window';
+    }
+  | { type: 'event.updated'; eventId: Types.ObjectId }
+  | {
+      type: 'account.changed';
+      userId: Types.ObjectId;
+      role: Role;
+      suspended: boolean;
+      application?: { status: 'approved' | 'rejected' };
     };
-// Day 14: event.updated, account.changed · Day 16: booking.confirmed, sales.changed · Day 18: checkin.recorded
+// Day 16: booking.confirmed, sales.changed · Day 18: checkin.recorded

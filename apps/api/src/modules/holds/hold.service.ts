@@ -15,7 +15,7 @@ import { addMinutes, subSeconds } from '../../lib/dates';
 import { conflict, gone, notFound } from '../../lib/errors';
 import { logger } from '../../lib/logger';
 import { isDuplicateKey } from '../../lib/mongoErrors';
-import type { Ctx } from '../../types/ctx';
+import { makeCtx, type Ctx } from '../../types/ctx';
 
 export const SEAT_CHANGE_FIELDS = {
   _id: 1,
@@ -282,6 +282,16 @@ export async function releaseMyHold(ctx: Ctx, eventId: Types.ObjectId) {
   assertNoCheckout(hold, now);
   await releaseAllSeats(ctx, hold);
   return holdView(ctx, null, now);
+}
+
+/** The same view for a broadcast, which has no request to read the user from. */
+export async function holdViewForUser(
+  userId: Types.ObjectId,
+  eventId: Types.ObjectId,
+  now = new Date(),
+): Promise<HoldResponse> {
+  const hold = await Hold.findOne({ userId, eventId, status: 'active' }).select('_id').lean();
+  return holdView(makeCtx({ userId, role: 'attendee', now: () => now }), hold?._id ?? null, now);
 }
 
 /** queries.md §8.5: FR-HOLD-09. */

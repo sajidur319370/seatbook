@@ -1,5 +1,6 @@
 export * from './constants';
 export * from './dto';
+export * from './events';
 export * from './money';
 export * from './permissions';
 export * from './phase';

@@ -2,6 +2,7 @@ import type { Types } from 'mongoose';
 import type { Role } from '@seatbook/shared';
 import { Event, Hold, OrganizerApplication, Session, User, type HoldLean } from '../../db/models';
 import { withTransaction } from '../../db/transaction';
+import { publish } from '../../events/publish';
 import { conflict, forbidden, notFound } from '../../lib/errors';
 import { decodeCursor, encodeCursor } from '../../lib/cursor';
 import { escapeRegex } from '../../lib/regex';
@@ -12,6 +13,18 @@ import { systemCtx, type Ctx } from '../../types/ctx';
 
 const alreadyReviewed = () =>
   conflict('APPLICATION_ALREADY_REVIEWED', 'This application was already reviewed.');
+
+/** What the account really is now, not what the request hoped for. */
+const accountChanged = (
+  u: { _id: Types.ObjectId; role: Role; suspendedAt?: Date | null },
+  application?: { status: 'approved' | 'rejected' },
+) => ({
+  type: 'account.changed' as const,
+  userId: u._id,
+  role: u.role,
+  suspended: !!u.suspendedAt,
+  ...(application && { application }),
+});
 
 // ---------- applications (queries.md §4.2) ----------
 
@@ -52,9 +65,12 @@ export async function approveApplication(ctx: Ctx, applicationId: Types.ObjectId
     return a;
   });
 
-  // After commit: email (Day 14 adds the socket push account:changed)
-  const user = await User.findById(app.userId).select('name email').lean();
-  if (user) sendMail({ to: user.email, ...applicationApproved(user.name, app.organizationName) });
+  // After commit: email and the socket push.
+  const user = await User.findById(app.userId).select('name email role suspendedAt').lean();
+  if (user) {
+    sendMail({ to: user.email, ...applicationApproved(user.name, app.organizationName) });
+    await publish(ctx, [accountChanged(user, { status: 'approved' })]);
+  }
   return app;
 }
 
@@ -76,8 +92,11 @@ export async function rejectApplication(ctx: Ctx, applicationId: Types.ObjectId,
       ? alreadyReviewed()
       : notFound();
 
-  const user = await User.findById(a.userId).select('name email').lean();
-  if (user) sendMail({ to: user.email, ...applicationRejected(user.name, reason) });
+  const user = await User.findById(a.userId).select('name email role suspendedAt').lean();
+  if (user) {
+    sendMail({ to: user.email, ...applicationRejected(user.name, reason) });
+    await publish(ctx, [accountChanged(user, { status: 'rejected' })]);
+  }
   return a;
 }
 
@@ -176,7 +195,10 @@ export async function updateUser(
     if (!res.matchedCount) throw (await User.exists({ _id: targetId })) ? forbidden() : notFound();
   }
 
-  return User.findById(targetId)
+  const user = await User.findById(targetId)
     .select('name email role organizationName suspendedAt createdAt')
     .lean();
+  // Last, so a suspended buyer's seats are already free when their sockets are cut.
+  if (user) await publish(ctx, [accountChanged(user)]);
+  return user;
 }

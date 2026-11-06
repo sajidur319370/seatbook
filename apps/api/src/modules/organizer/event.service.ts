@@ -7,6 +7,7 @@ import {
   type UpdateEventInput,
 } from '@seatbook/shared';
 import { Event, User, type EventLean } from '../../db/models';
+import { publish } from '../../events/publish';
 import { decodeStartsCursor, encodeStartsCursor } from '../../lib/cursor';
 import { AppError, badRequest, conflict } from '../../lib/errors';
 import { isDuplicateKey } from '../../lib/mongoErrors';
@@ -71,6 +72,7 @@ export async function updateEvent(ctx: Ctx, eventId: Types.ObjectId, input: Upda
       revision: ev.revision,
     });
   }
+  await publish(ctx, [{ type: 'event.updated', eventId }]);
   return updated;
 }
 
