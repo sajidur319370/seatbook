@@ -66,6 +66,25 @@ export async function broadcast(ctx: Ctx, e: DomainEvent): Promise<void> {
       if (e.suspended) io.in(`user:${e.userId}`).disconnectSockets(true); // after telling them
       return;
     }
+    case 'booking.confirmed': {
+      // The buyer's other tabs: "you're going!" and stop their countdowns.
+      io.to(`user:${e.userId}`).emit('booking:confirmed', {
+        eventId: String(e.eventId),
+        bookingId: String(e.bookingId),
+      });
+      return;
+    }
+    case 'sales.changed': {
+      // publish() already bumped the counters (events/counters.ts), so read the new totals.
+      const ev = await Event.findOne({ _id: e.eventId }).select('counters').lean<EventLean>();
+      if (!ev) return;
+      io.to(`staff:${e.eventId}`).emit('sales:updated', {
+        eventId: String(e.eventId),
+        seatsSold: ev.counters?.seatsSold ?? 0,
+        revenue: ev.counters?.revenue ?? 0,
+      });
+      return;
+    }
     default: {
       const unhandled: never = e; // a compile error here: you added a DomainEvent and forgot its broadcast
       return unhandled;

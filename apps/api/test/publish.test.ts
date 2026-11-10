@@ -4,9 +4,11 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { concertHall, generateSeats, newId } from '@seatbook/shared';
 import { app } from './setup/app';
-import { Booking, Event, Hold, Seat } from '../src/db/models';
+import { Event, Hold, Seat } from '../src/db/models';
 import { addDays } from '../src/lib/dates';
 import { as } from './helpers/auth';
+import { makeBuyers } from './helpers/buyers';
+import { holdSeats, pay } from './helpers/checkout';
 import { makeAdmin, makeOrganizer } from './helpers/roles';
 import { eventInput, makeDraft, makePublishedEvent, smallLayout } from './factories/events';
 
@@ -318,8 +320,10 @@ describe('unpublish', () => {
 
   it('is refused once there is a booking (AC-EVT-04)', async () => {
     const org = await makeOrganizer();
-    const { eventId } = await makePublishedEvent(org.token);
-    await Booking.create({ eventId, holdId: new Types.ObjectId() });
+    const { eventId, seats } = await makePublishedEvent(org.token);
+    const [buyer] = await makeBuyers(1);
+    await holdSeats(buyer!.token, eventId, [seats[0]!.id]);
+    expect((await pay(buyer!.token, eventId)).status).toBe(201); // a real booking (Day 16)
     const res = await as(org.token).post(unpublishUrl(eventId));
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('EVENT_HAS_BOOKINGS');

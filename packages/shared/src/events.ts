@@ -29,12 +29,25 @@ export interface AccountChangedPayload {
   application?: { status: 'approved' | 'rejected' };
 }
 
+export interface BookingConfirmedPayload {
+  eventId: Id;
+  bookingId: Id;
+}
+
+export interface SalesUpdatedPayload {
+  eventId: Id;
+  seatsSold: number;
+  revenue: number; // minor units
+}
+
 export interface ServerToClientEvents {
   'seats:changed': (p: SeatsChangedPayload) => void;
   'event:updated': (p: { eventId: Id; event: PublicEventDto; emittedAt: string }) => void;
   'hold:changed': (p: HoldChangedPayload) => void;
   'account:changed': (p: AccountChangedPayload) => void;
-  // Day 16: 'booking:confirmed', 'sales:updated' · Day 18: 'checkin:recorded'
+  'booking:confirmed': (p: BookingConfirmedPayload) => void; // the buyer's own tabs
+  'sales:updated': (p: SalesUpdatedPayload) => void; // the event's staff room
+  // Day 18: 'checkin:recorded'
 }
 
 export type Ack = { ok: true } | { ok: false; code: string };

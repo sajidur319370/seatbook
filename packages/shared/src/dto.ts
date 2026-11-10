@@ -7,6 +7,7 @@ import type {
   PaletteColor,
   Role,
   SeatStatus,
+  TicketStatus,
 } from './constants';
 import type { SectionInput, TierInput } from './seatmap';
 
@@ -141,4 +142,50 @@ export interface HoldResponse {
   serverTime: string; // FR-HOLD-10
   hold: HoldDto | null;
   changes?: SeatChangeDto[]; // what this request did to each seat: writes only
+}
+
+export interface TicketSummaryDto {
+  id: Id;
+  seatLabel: string;
+  sectionName: string;
+  row: string;
+  number: number;
+  tierName: string;
+  price: number;
+  status: TicketStatus;
+  checkedInAt: string | null;
+}
+
+/** Never carries a ticket code: those come one ticket at a time (Day 17, FR-TKT-06). */
+export interface BookingDto {
+  id: Id;
+  reference: string;
+  status: 'confirmed' | 'cancelled';
+  event: {
+    id: Id;
+    title: string;
+    slug: string;
+    startsAt: string;
+    venueName: string;
+    city: string;
+    timezone: string;
+  };
+  items: {
+    seatId: Id;
+    label: string;
+    sectionName: string;
+    row: string;
+    number: number;
+    tierName: string;
+    price: number;
+  }[];
+  total: number;
+  currency: Currency;
+  payment: { brand: string | null; last4: string | null; paidAt: string };
+  tickets: TicketSummaryDto[];
+  createdAt: string;
+}
+
+export interface CheckoutResponse {
+  booking: BookingDto;
 }

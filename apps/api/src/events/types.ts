@@ -24,5 +24,12 @@ export type DomainEvent =
       role: Role;
       suspended: boolean;
       application?: { status: 'approved' | 'rejected' };
-    };
-// Day 16: booking.confirmed, sales.changed · Day 18: checkin.recorded
+    }
+  | {
+      type: 'booking.confirmed';
+      userId: Types.ObjectId;
+      eventId: Types.ObjectId;
+      bookingId: Types.ObjectId;
+    }
+  | { type: 'sales.changed'; eventId: Types.ObjectId; seats: number; revenue: number };
+// Day 18: checkin.recorded

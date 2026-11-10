@@ -33,3 +33,15 @@ export const holdIpLimiter = rateLimit({
   skip: () => env.NODE_ENV === 'test',
   handler: (_req, _res, next) => next(tooManyClicks()),
 });
+
+/** Per USER: 10 payment attempts a minute (FR-PAY-13). Must run after authenticate. */
+export const checkoutLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 10,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  keyGenerator: (req) => `checkout:${String(req.ctx.userId)}`,
+  skip: () => env.NODE_ENV === 'test',
+  handler: (_req, _res, next) =>
+    next(new AppError(429, 'RATE_LIMITED', 'Too many payment attempts. Wait a minute.')),
+});

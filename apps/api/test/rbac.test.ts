@@ -143,7 +143,14 @@ const ROWS: Row[] = [
     path: (f) => `/api/events/${f.eventId}/hold`,
     perm: 'seat:hold',
   },
-  // Day 16: checkout, Day 18: check-in, Day 19: dashboards
+  {
+    name: 'checkout',
+    method: 'post',
+    path: (f) => `/api/events/${f.eventId}/hold/checkout`,
+    perm: 'booking:create',
+    body: () => ({ paymentToken: 'tok_visa' }),
+  },
+  // Day 18: check-in, Day 19: dashboards
 ];
 
 describe('RBAC matrix', () => {

@@ -19,6 +19,7 @@ import {
   startServer,
 } from './helpers/sockets';
 import { makeDraft, makePublishedEvent } from './factories/events';
+import { holdSeats, pay } from './helpers/checkout';
 
 const elevenMinutesLater = () => new Date(Date.now() + 11 * 60_000);
 
@@ -554,6 +555,51 @@ describe('realtime', () => {
         suspended: false,
         application: { status: 'rejected' },
       });
+    });
+  });
+
+  describe('checkout (Day 16)', () => {
+    it('a purchase reaches the map, the buyer’s tabs and the staff room', async () => {
+      const [rafi, mina] = await makeBuyers(2);
+      await holdSeats(rafi!.token, eventId, [seats[0]!.id, seats[1]!.id]);
+
+      const viewer = await viewerOf(mina!.token, eventId);
+      const tab2 = await socketFor(rafi!.token);
+      const staff = await socketFor(org.token);
+      expect(await emitAck(staff, 'staff:join', { eventId })).toEqual({ ok: true });
+
+      const maps: {
+        changes: { seatId: string; status: string; holdExpiresAt: string | null }[];
+      }[] = [];
+      viewer.on('seats:changed', (m) => maps.push(m));
+      const confirmed = nextEvent<{ eventId: string; bookingId: string }>(
+        tab2,
+        'booking:confirmed',
+      );
+      const sales = nextEvent(staff, 'sales:updated');
+
+      const res = await pay(rafi!.token, eventId);
+      expect(res.status).toBe(201);
+      expect(await confirmed).toEqual({ eventId, bookingId: res.body.booking.id });
+      expect(await sales).toEqual({ eventId, seatsSold: 2, revenue: 8000 });
+
+      // First the payment window (still held, later expiry), then booked.
+      expect(maps).toHaveLength(2);
+      expect(maps[0]!.changes.map((c) => c.status)).toEqual(['held', 'held']);
+      expect(maps[1]!.changes).toEqual([
+        expect.objectContaining({ status: 'booked', holdExpiresAt: null }),
+        expect.objectContaining({ status: 'booked', holdExpiresAt: null }),
+      ]);
+      expect(JSON.stringify(maps)).not.toContain(rafi!.user.id); // NFR-PRIV-02
+    });
+
+    it('other buyers don’t get the booking, and viewers don’t get sales', async () => {
+      const [rafi, mina] = await makeBuyers(2);
+      await holdSeats(rafi!.token, eventId, [seats[0]!.id]);
+      const other = await viewerOf(mina!.token, eventId);
+      expect((await pay(rafi!.token, eventId)).status).toBe(201);
+      await expectNoEvent(other, 'booking:confirmed');
+      await expectNoEvent(other, 'sales:updated');
     });
   });
 
