@@ -20,8 +20,17 @@ const EventPage = lazy(() =>
 const SeatSelectionPage = lazy(() =>
   import('@/features/seats/SeatSelectionPage').then((m) => ({ default: m.SeatSelectionPage })),
 );
-const CheckoutSoonPage = lazy(() =>
-  import('@/features/seats/CheckoutSoonPage').then((m) => ({ default: m.CheckoutSoonPage })),
+const CheckoutPage = lazy(() =>
+  import('@/features/checkout/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
+);
+const BookingPage = lazy(() =>
+  import('@/features/bookings/BookingPage').then((m) => ({ default: m.BookingPage })),
+);
+const MyTicketsPage = lazy(() =>
+  import('@/features/bookings/MyTicketsPage').then((m) => ({ default: m.MyTicketsPage })),
+);
+const TicketPage = lazy(() =>
+  import('@/features/bookings/TicketPage').then((m) => ({ default: m.TicketPage })),
 );
 
 // Lazy, so attendees never download the organizer and admin areas (NFR-PERF-08).
@@ -63,7 +72,10 @@ export const router = createBrowserRouter(
 
         <Route element={<RequireAuth />}>
           <Route path="/e/:slug/seats" element={<SeatSelectionPage />} />
-          <Route path="/e/:slug/checkout" element={<CheckoutSoonPage />} />
+          <Route path="/e/:slug/checkout" element={<CheckoutPage />} />
+          <Route path="/bookings/:bookingId" element={<BookingPage />} />
+          <Route path="/me/tickets" element={<MyTicketsPage />} />
+          <Route path="/tickets/:ticketId" element={<TicketPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/become-organizer" element={<BecomeOrganizerPage />} />
 

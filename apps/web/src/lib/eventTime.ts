@@ -19,3 +19,9 @@ export function viewerTimeIfDifferent(iso: string, eventZone: string) {
   const viewer = formatEventTime(iso, Intl.DateTimeFormat().resolvedOptions().timeZone);
   return viewer === formatEventTime(iso, eventZone) ? null : viewer;
 }
+
+/** "19:42" in the event's zone: when a ticket was scanned at the door. */
+export const formatTimeOfDay = (iso: string, tz: string) =>
+  new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz }).format(
+    new Date(iso),
+  );

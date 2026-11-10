@@ -7,4 +7,9 @@ export const qk = {
   organizerEvent: (id: string) => ['organizer', 'event', id] as const,
   seatMap: (id: string) => ['seatmap', id] as const,
   hold: (eventId: string) => ['hold', eventId] as const,
+  // Under ['me'], so a logout or an account change (which invalidate qk.me) refreshes them too.
+  myBookings: ['me', 'bookings'] as const,
+  myBooking: (id: string) => ['me', 'bookings', id] as const,
+  myTickets: (when: 'upcoming' | 'past') => ['me', 'tickets', when] as const,
+  myTicket: (id: string) => ['me', 'ticket', id] as const,
 };

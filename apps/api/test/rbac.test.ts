@@ -150,6 +150,20 @@ const ROWS: Row[] = [
     perm: 'booking:create',
     body: () => ({ paymentToken: 'tok_visa' }),
   },
+  { name: 'my bookings', method: 'get', path: () => '/api/me/bookings', perm: 'booking:viewOwn' },
+  {
+    name: 'one booking',
+    method: 'get',
+    path: () => '/api/me/bookings/000000000000000000000001',
+    perm: 'booking:viewOwn',
+  },
+  { name: 'my tickets', method: 'get', path: () => '/api/me/tickets', perm: 'ticket:viewOwn' },
+  {
+    name: 'one ticket',
+    method: 'get',
+    path: () => '/api/me/tickets/000000000000000000000001',
+    perm: 'ticket:viewOwn',
+  },
   // Day 18: check-in, Day 19: dashboards
 ];
 

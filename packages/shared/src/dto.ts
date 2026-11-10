@@ -189,3 +189,53 @@ export interface BookingDto {
 export interface CheckoutResponse {
   booking: BookingDto;
 }
+
+/** The event as a booking or ticket list shows it: the snapshot taken at purchase. */
+export interface BookedEventDto {
+  id: Id;
+  title: string;
+  slug: string;
+  startsAt: string;
+  venueName: string;
+  city: string;
+  timezone: string;
+}
+
+/** One row of "My bookings" (FR-TKT-04): no tickets, no codes. */
+export interface BookingListItemDto {
+  id: Id;
+  reference: string;
+  status: 'confirmed' | 'cancelled';
+  event: BookedEventDto;
+  seats: number;
+  total: number;
+  currency: Currency;
+  createdAt: string;
+}
+
+export interface MyBookingsResponse {
+  items: BookingListItemDto[];
+  nextCursor: string | null;
+}
+
+/** "My tickets" (FR-TKT-05): grouped by event, and never a code (FR-TKT-09). */
+export interface MyTicketsResponse {
+  groups: { event: BookedEventDto; tickets: TicketSummaryDto[] }[];
+}
+
+export interface TicketDto extends TicketSummaryDto {
+  eventId: Id;
+  bookingId: Id;
+  eventTitle: string;
+  eventStartsAt: string;
+  currency: Currency;
+  holderName: string;
+}
+
+/** The one place a ticket's codes leave the server (FR-TKT-06). Sent with Cache-Control: no-store. */
+export interface TicketResponse {
+  ticket: TicketDto;
+  qrDataUrl: string | null; // null when void
+  manualCode: string | null; // "7KQ2-9XF3-AB"
+  event: BookedEventDto;
+}

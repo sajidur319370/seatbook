@@ -1,27 +1,20 @@
-import type { BookingDto, TicketStatus } from '@seatbook/shared';
+import type { BookingDto } from '@seatbook/shared';
 import { Ticket, type BookingLean } from '../../db/models';
+import { bySeat, toBookedEventDto, toTicketSummaryDto } from './bookings.service';
 
 /** Explicit mapper: ids as strings, dates as ISO, and nothing internal (no chargeId, no code hash). */
 export async function bookingDto(b: BookingLean): Promise<BookingDto> {
-  const tickets = await Ticket.find({ bookingId: b._id })
+  // queries.md §12.2: scoped to the owner too, never by bookingId alone.
+  const tickets = await Ticket.find({ bookingId: b._id, userId: b.userId })
     .select('_id seatLabel sectionName row number tierName price status checkedInAt')
     .lean();
-  // Numeric, like the hold list: A2 before A10.
-  tickets.sort((a, b) => a.seatLabel.localeCompare(b.seatLabel, undefined, { numeric: true }));
+  tickets.sort(bySeat);
 
   return {
     id: String(b._id),
     reference: b.reference,
     status: b.status === 'cancelled' ? 'cancelled' : 'confirmed',
-    event: {
-      id: String(b.eventId),
-      title: b.event.title,
-      slug: b.event.slug,
-      startsAt: b.event.startsAt.toISOString(),
-      venueName: b.event.venueName,
-      city: b.event.city,
-      timezone: b.event.timezone,
-    },
+    event: toBookedEventDto(b),
     items: b.items.map((i) => ({
       seatId: String(i.seatId),
       label: i.label,
@@ -38,17 +31,7 @@ export async function bookingDto(b: BookingLean): Promise<BookingDto> {
       last4: b.payment.last4,
       paidAt: b.payment.paidAt.toISOString(),
     },
-    tickets: tickets.map((t) => ({
-      id: String(t._id),
-      seatLabel: t.seatLabel,
-      sectionName: t.sectionName,
-      row: t.row,
-      number: t.number,
-      tierName: t.tierName,
-      price: t.price,
-      status: t.status as TicketStatus,
-      checkedInAt: t.checkedInAt ? t.checkedInAt.toISOString() : null,
-    })),
+    tickets: tickets.map(toTicketSummaryDto),
     createdAt: b.createdAt.toISOString(),
   };
 }
