@@ -1,0 +1,32 @@
+{
+  "kpi": {
+    "sold": 11,
+    "sellable": 15,
+    "soldPct": 0.7333,
+    "revenue": 60000,
+    "avgTicketPrice": 5455,
+    "checkedIn": 7,
+    "checkinRate": 0.6364,
+    "heldNow": 0,
+    "duplicateScans": 2
+  },
+  "salesPerDay": [
+    { "day": "2030-06-10", "tickets": 5, "revenue": 31000, "cumTickets": 5, "cumRevenue": 31000 },
+    { "day": "2030-06-11", "tickets": 0, "revenue": 0, "cumTickets": 5, "cumRevenue": 31000 },
+    { "day": "2030-06-12", "tickets": 2, "revenue": 13000, "cumTickets": 7, "cumRevenue": 44000 },
+    { "day": "2030-06-13", "tickets": 3, "revenue": 13000, "cumTickets": 10, "cumRevenue": 57000 },
+    { "day": "2030-06-14", "tickets": 1, "revenue": 3000, "cumTickets": 11, "cumRevenue": 60000 }
+  ],
+  "tiers": [
+    { "name": "Standard", "color": "teal", "sold": 6, "sellable": 6, "revenue": 30000 },
+    { "name": "VIP", "color": "purple", "sold": 3, "sellable": 4, "revenue": 24000 },
+    { "name": "Value", "color": "amber", "sold": 2, "sellable": 5, "revenue": 6000 }
+  ],
+  "checkinsOverTime": [
+    { "at": "2030-06-14T15:00:00.000Z", "n": 2 },
+    { "at": "2030-06-14T15:05:00.000Z", "n": 2 },
+    { "at": "2030-06-14T15:20:00.000Z", "n": 1 },
+    { "at": "2030-06-14T15:40:00.000Z", "n": 1 },
+    { "at": "2030-06-14T15:55:00.000Z", "n": 1 }
+  ]
+}

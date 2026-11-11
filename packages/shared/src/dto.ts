@@ -239,3 +239,90 @@ export interface TicketResponse {
   manualCode: string | null; // "7KQ2-9XF3-AB"
   event: BookedEventDto;
 }
+
+/** One calendar day of sales, in the event's time zone (FR-DASH-02). */
+export interface DayRow {
+  day: string; // 'YYYY-MM-DD'
+  tickets: number;
+  revenue: number;
+  cumTickets: number;
+  cumRevenue: number;
+}
+
+export interface EventDashboardDto {
+  event: {
+    id: Id;
+    title: string;
+    timezone: string;
+    currency: Currency;
+    startsAt: string;
+    phase: EventPhase;
+  };
+  generatedAt: string;
+  kpi: {
+    sold: number;
+    sellable: number;
+    soldPct: number; // ratios: 0..1, rounded to 4 decimals
+    revenue: number; // minor units
+    avgTicketPrice: number;
+    checkedIn: number;
+    checkinRate: number;
+    heldNow: number;
+    duplicateScans: number;
+  };
+  salesPerDay: DayRow[]; // publish day → min(today, sales end), event zone
+  tiers: {
+    tierId: Id;
+    name: string;
+    color: PaletteColor;
+    sold: number;
+    sellable: number;
+    revenue: number;
+  }[];
+  checkinsOverTime: { at: string; n: number }[]; // 5-minute buckets, non-empty only
+}
+
+export interface AttendeeRow {
+  ticketId: Id;
+  holderName: string;
+  email: string;
+  reference: string;
+  seatLabel: string;
+  sectionName: string;
+  tierName: string;
+  status: TicketStatus;
+  checkedInAt: string | null;
+}
+
+export interface AttendeeListResponse {
+  items: AttendeeRow[];
+  nextCursor: string | null;
+}
+
+export interface OrganizerOverviewDto {
+  upcoming: {
+    id: Id;
+    title: string;
+    startsAt: string;
+    timezone: string;
+    currency: Currency;
+    phase: EventPhase;
+    sold: number;
+    sellable: number;
+    revenue: number;
+  }[];
+  totals: {
+    ticketsSold: number;
+    eventsOnSale: number;
+    revenue: { currency: Currency; amount: number }[]; // never add BDT to USD
+  };
+  last30Days: { day: string; tickets: number }[]; // the organizer's profile time zone
+}
+
+export interface AdminOverviewDto {
+  users: Record<Role, number> & { suspended: number };
+  pendingApplications: number;
+  eventsByPhase: Record<EventPhase, number>;
+  gmv: { currency: Currency; revenue: number; bookings: number }[];
+  ticketsPerDay: { day: string; tickets: number }[]; // UTC days (requirement §15.4)
+}

@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { EmptyState, LoadError, LoadMore, LoadingRows } from '@/components/QueryStates';
 import {
   Table,
@@ -34,6 +35,7 @@ export function AdminEventsPage() {
                 <TableHead>Phase</TableHead>
                 <TableHead>Starts</TableHead>
                 <TableHead className="text-right">Sold</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -46,6 +48,16 @@ export function AdminEventsPage() {
                   </TableCell>
                   <TableCell>{formatEventTime(e.startsAt, e.timezone)}</TableCell>
                   <TableCell className="text-right">{percentSold(e)}</TableCell>
+                  <TableCell className="text-right">
+                    {e.status !== 'draft' && (
+                      <Link
+                        to={`/admin/events/${e.id}/dashboard`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Dashboard
+                      </Link>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

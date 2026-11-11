@@ -46,6 +46,15 @@ const EventEditorPage = lazy(() =>
 const CheckInPage = lazy(() =>
   import('@/features/checkin/CheckInPage').then((m) => ({ default: m.CheckInPage })),
 );
+// Recharts comes with these, so attendees never download it (NFR-PERF-08).
+const EventDashboardPage = lazy(() =>
+  import('@/features/dashboard/EventDashboardPage').then((m) => ({
+    default: m.EventDashboardPage,
+  })),
+);
+const AttendeesPage = lazy(() =>
+  import('@/features/dashboard/AttendeesPage').then((m) => ({ default: m.AttendeesPage })),
+);
 const AdminOverviewPage = lazy(() =>
   import('@/features/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })),
 );
@@ -87,6 +96,11 @@ export const router = createBrowserRouter(
             <Route path="/organizer/events/new" element={<NewEventPage />} />
             <Route path="/organizer/events/:eventId" element={<EventEditorPage />} />
             <Route path="/organizer/events/:eventId/check-in" element={<CheckInPage />} />
+            <Route
+              path="/organizer/events/:eventId/dashboard"
+              element={<EventDashboardPage scope="organizer" />}
+            />
+            <Route path="/organizer/events/:eventId/attendees" element={<AttendeesPage />} />
           </Route>
 
           <Route element={<RequirePermission perm="admin:overview" />}>
@@ -94,6 +108,10 @@ export const router = createBrowserRouter(
             <Route path="/admin/applications" element={<ApplicationsPage />} />
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/events" element={<AdminEventsPage />} />
+            <Route
+              path="/admin/events/:eventId/dashboard"
+              element={<EventDashboardPage scope="admin" />}
+            />
           </Route>
         </Route>
       </Route>

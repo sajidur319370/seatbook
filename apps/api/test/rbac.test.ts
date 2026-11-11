@@ -177,7 +177,36 @@ const ROWS: Row[] = [
     path: (f) => `/api/organizer/events/${f.eventId}/scans`,
     perm: 'checkin:perform',
   },
-  // Day 19: dashboards
+  {
+    name: 'organizer overview',
+    method: 'get',
+    path: () => '/api/organizer/overview',
+    perm: 'dashboard:view',
+  },
+  {
+    name: 'event dashboard',
+    method: 'get',
+    path: (f) => `/api/organizer/events/${f.eventId}/dashboard`,
+    perm: 'dashboard:view',
+  },
+  {
+    name: 'attendee list',
+    method: 'get',
+    path: (f) => `/api/organizer/events/${f.eventId}/attendees`,
+    perm: 'attendees:view',
+  },
+  {
+    name: 'admin overview',
+    method: 'get',
+    path: () => '/api/admin/overview',
+    perm: 'admin:overview',
+  },
+  {
+    name: 'admin event dashboard',
+    method: 'get',
+    path: (f) => `/api/admin/events/${f.eventId}/dashboard`,
+    perm: 'admin:events',
+  },
 ];
 
 describe('RBAC matrix', () => {

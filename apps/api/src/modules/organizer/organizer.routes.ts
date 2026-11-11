@@ -4,6 +4,7 @@ import {
   checkInSchema,
   createEventSchema,
   EVENT_STATUSES,
+  objectIdSchema,
   scanFeedQuerySchema,
   seatMapInputSchema,
   updateEventSchema,
@@ -19,6 +20,13 @@ import { saveSeatMap } from './seatmap.service';
 import { findOwnedEvent } from '../events/scope';
 import { toOrganizerEventDto } from '../events/event.dto';
 import { checkIn, scanFeed } from '../checkin/checkin.service';
+import { attendeeList } from '../dashboard/attendees.service';
+import {
+  DASHBOARD_EVENT_FIELDS,
+  eventDashboard,
+  type DashboardEvent,
+} from '../dashboard/dashboard.service';
+import { organizerOverview } from '../dashboard/overview.service';
 
 export const organizerRouter = Router(); // mounted behind authenticate
 
@@ -118,4 +126,28 @@ organizerRouter.get(
     res.json(await scanFeed(req.event!._id, valid(req, scansReq).query));
   },
 );
-// Day 19: dashboard, attendees
+
+// FR-DASH-09: totals across the caller's own events.
+organizerRouter.get('/overview', authorize('dashboard:view'), async (req, res) => {
+  res.json(await organizerOverview(req.ctx));
+});
+
+organizerRouter.get('/events/:eventId/dashboard', authorize('dashboard:view'), async (req, res) => {
+  const ev = await findOwnedEvent<DashboardEvent>(req.ctx, req.event!._id, DASHBOARD_EVENT_FIELDS);
+  res.json(await eventDashboard(ev, req.ctx.now()));
+});
+
+const attendeesReq = {
+  query: z.object({
+    q: z.string().trim().max(100).optional(),
+    cursor: objectIdSchema.optional(),
+  }),
+};
+organizerRouter.get(
+  '/events/:eventId/attendees',
+  authorize('attendees:view'),
+  validate(attendeesReq),
+  async (req, res) => {
+    res.json(await attendeeList(req.event!._id, valid(req, attendeesReq).query));
+  },
+);

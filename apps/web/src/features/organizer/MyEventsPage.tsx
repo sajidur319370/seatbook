@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import { formatEventTime } from '@/lib/eventTime';
 import { PhaseBadge, percentSold } from '@/components/PhaseBadge';
+import { OrganizerOverview } from '@/features/dashboard/OrganizerOverview';
 import { useMyEvents } from './useOrganizerEvents';
 
 export function MyEventsPage() {
@@ -25,8 +26,10 @@ export function MyEventsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">My events</h1>
+      <h1 className="text-2xl font-semibold">Organizer</h1>
+      <OrganizerOverview />
+      <div className="flex items-center justify-between gap-2 pt-2">
+        <h2 className="text-xl font-semibold">My events</h2>
         {rows.length > 0 && newEvent}
       </div>
 
@@ -63,12 +66,26 @@ export function MyEventsPage() {
                   </TableCell>
                   <TableCell className="space-x-3 text-right whitespace-nowrap">
                     {e.status === 'published' && (
-                      <Link
-                        to={`/organizer/events/${e.id}/check-in`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Check-in
-                      </Link>
+                      <>
+                        <Link
+                          to={`/organizer/events/${e.id}/dashboard`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Dashboard
+                        </Link>
+                        <Link
+                          to={`/organizer/events/${e.id}/attendees`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Attendees
+                        </Link>
+                        <Link
+                          to={`/organizer/events/${e.id}/check-in`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Check-in
+                        </Link>
+                      </>
                     )}
                     <Link
                       to={`/organizer/events/${e.id}`}

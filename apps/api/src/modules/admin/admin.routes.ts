@@ -4,7 +4,14 @@ import { EVENT_STATUSES, objectIdSchema, rejectSchema, ROLES } from '@seatbook/s
 import { authorize } from '../../middleware/authorize';
 import { validate, valid } from '../../middleware/validate';
 import { oid } from '../../lib/ids';
+import {
+  DASHBOARD_EVENT_FIELDS,
+  eventDashboard,
+  type DashboardEvent,
+} from '../dashboard/dashboard.service';
+import { adminOverview } from '../dashboard/overview.service';
 import { toOrganizerEventDto } from '../events/event.dto';
+import { findAnyEvent } from '../events/scope';
 import { listEventsNewestFirst } from '../organizer/event.service';
 import * as admin from './admin.service';
 
@@ -105,5 +112,26 @@ adminRouter.patch(
   async (req, res) => {
     const { params, body } = valid(req, patchUserReq);
     res.json({ user: await admin.updateUser(req.ctx, oid(params.id), body) });
+  },
+);
+
+adminRouter.get('/overview', authorize('admin:overview'), async (req, res) => {
+  res.json(await adminOverview(req.ctx.now()));
+});
+
+// Any event, read-only: findAnyEvent may only be called from modules/admin/ (schema.md §3).
+// 'admin:events', NOT 'dashboard:view': organizers have that one, and this route skips the
+// ownership check, so it would show them every other organizer's sales.
+const dashReq = { params: z.object({ eventId: objectIdSchema }) };
+adminRouter.get(
+  '/events/:eventId/dashboard',
+  authorize('admin:events'),
+  validate(dashReq),
+  async (req, res) => {
+    const ev = await findAnyEvent<DashboardEvent>(
+      oid(valid(req, dashReq).params.eventId),
+      DASHBOARD_EVENT_FIELDS,
+    );
+    res.json(await eventDashboard(ev, req.ctx.now()));
   },
 );

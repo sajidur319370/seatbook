@@ -144,6 +144,7 @@ export async function checkIn(
     method: input.method,
     gate: input.gate || null,
     scannedBy: ctx.userId,
+    createdAt: now, // the injectable clock (see checkout's booking createdAt)
   });
 
   const [checkedIn, sold] = await Promise.all([

@@ -12,4 +12,8 @@ export const qk = {
   myBooking: (id: string) => ['me', 'bookings', id] as const,
   myTickets: (when: 'upcoming' | 'past') => ['me', 'tickets', when] as const,
   myTicket: (id: string) => ['me', 'ticket', id] as const,
+  dashboard: (scope: 'organizer' | 'admin', id: string) => ['dashboard', scope, id] as const,
+  attendees: (id: string, q: string) => ['organizer', 'attendees', id, q] as const,
+  organizerOverview: ['organizer', 'overview'] as const,
+  adminOverview: ['admin', 'overview'] as const,
 };

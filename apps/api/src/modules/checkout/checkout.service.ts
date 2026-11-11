@@ -213,6 +213,9 @@ export async function checkout(
           [
             {
               _id: bookingId,
+              // The purchase instant from the injectable clock, not Mongoose's wall clock: the
+              // dashboard buckets sales by it, and the fixture and seed run on a fake clock.
+              createdAt: ctx.now(),
               reference: bookingReference(), // SB-XXXX-XXXX
               userId: ctx.userId,
               eventId: ev._id,

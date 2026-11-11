@@ -12,7 +12,8 @@
     "make-big-event": "tsx scripts/make-big-event.ts",
     "db:diff-indexes": "tsx scripts/diff-indexes.ts",
     "db:sync-indexes": "tsx scripts/sync-indexes.ts",
-    "repair:stuck-holds": "tsx scripts/repair-stuck-holds.ts"
+    "repair:stuck-holds": "tsx scripts/repair-stuck-holds.ts",
+    "bench:dashboard": "tsx scripts/bench-dashboard.ts"
   },
   "dependencies": {
     "@seatbook/shared": "*",
@@ -20,6 +21,8 @@
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.3",

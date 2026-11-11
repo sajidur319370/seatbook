@@ -15,11 +15,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOrganizerEvent } from '@/features/organizer/useOrganizerEvents';
+import { useStaffRoom } from '@/socket/useStaffRoom';
 import { formatEventTime, formatTimeOfDay } from '@/lib/eventTime';
 import { feedback } from './feedback';
 import { QrScanner } from './QrScanner';
 import { describeResult, mergeCounts, type Tone } from './results';
-import { useStaffRoom } from './useStaffRoom';
 
 const GATE_KEY = 'seatbook.gate';
 const readGate = () => {
@@ -120,7 +120,9 @@ function ScanTab(props: {
   const [recent, setRecent] = useState<Recent[]>([]);
   const [counts, setCounts] = useState<CheckInCounts | null>(props.initialCounts);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  useStaffRoom(eventId, (p) => setCounts((c) => mergeCounts(c, p.counts))); // other gates
+  useStaffRoom(eventId, {
+    onCheckin: (p) => setCounts((c) => mergeCounts(c, p.counts)), // other gates
+  });
   const dismiss = useCallback(() => setResult(null), []);
 
   const scan = useMutation({
