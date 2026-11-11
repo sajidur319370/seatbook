@@ -85,6 +85,17 @@ export async function broadcast(ctx: Ctx, e: DomainEvent): Promise<void> {
       });
       return;
     }
+    case 'checkin.recorded': {
+      // Every gate's counter and recent list (FR-CHK-07). Staff only, so the holder's name is fine.
+      io.to(`staff:${e.eventId}`).emit('checkin:recorded', {
+        eventId: String(e.eventId),
+        result: e.result,
+        ticket: e.ticket,
+        counts: e.counts,
+        at: e.at.toISOString(),
+      });
+      return;
+    }
     default: {
       const unhandled: never = e; // a compile error here: you added a DomainEvent and forgot its broadcast
       return unhandled;

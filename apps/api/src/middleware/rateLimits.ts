@@ -1,4 +1,5 @@
-import rateLimit from 'express-rate-limit';
+import type { Request } from 'express';
+import rateLimit, { MemoryStore } from 'express-rate-limit';
 import { env } from '../config/env';
 import { AppError } from '../lib/errors';
 
@@ -45,3 +46,27 @@ export const checkoutLimiter = rateLimit({
   handler: (_req, _res, next) =>
     next(new AppError(429, 'RATE_LIMITED', 'Too many payment attempts. Wait a minute.')),
 });
+
+/**
+ * Check-in (FR-CHK-10): 120 scans a minute per organizer. A typed code that matches nothing costs
+ * double, so guessing manual codes is twice as slow. The store is our own so the route can add
+ * that second hit after it knows the result.
+ */
+export function createCheckinLimiter(opts: { limit?: number; skip?: () => boolean } = {}) {
+  const store = new MemoryStore();
+  const keyOf = (req: Request) => `checkin:${String(req.ctx.userId)}`;
+  const middleware = rateLimit({
+    windowMs: 60_000,
+    limit: opts.limit ?? 120,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    store,
+    keyGenerator: keyOf,
+    skip: opts.skip ?? (() => env.NODE_ENV === 'test'),
+    handler: (_req, _res, next) =>
+      next(new AppError(429, 'RATE_LIMITED', 'Too many scans. Wait a moment.')),
+  });
+  return { middleware, chargeAgain: (req: Request) => store.increment(keyOf(req)) };
+}
+
+export const checkinLimiter = createCheckinLimiter();

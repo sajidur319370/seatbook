@@ -1,4 +1,5 @@
-import type { Role, SeatStatus } from './constants';
+import type { Role, ScanResult, SeatStatus } from './constants';
+import type { CheckInCounts, CheckinTicketDto } from './schemas/checkin';
 import type { HoldDto, Id, PublicEventDto } from './dto';
 
 export interface SeatChangeDto {
@@ -40,6 +41,15 @@ export interface SalesUpdatedPayload {
   revenue: number; // minor units
 }
 
+/** Staff room only: the holder's name is fine there (NFR-PRIV-01). */
+export interface CheckinRecordedPayload {
+  eventId: Id;
+  result: ScanResult;
+  ticket: CheckinTicketDto | null;
+  counts: CheckInCounts;
+  at: string;
+}
+
 export interface ServerToClientEvents {
   'seats:changed': (p: SeatsChangedPayload) => void;
   'event:updated': (p: { eventId: Id; event: PublicEventDto; emittedAt: string }) => void;
@@ -47,7 +57,7 @@ export interface ServerToClientEvents {
   'account:changed': (p: AccountChangedPayload) => void;
   'booking:confirmed': (p: BookingConfirmedPayload) => void; // the buyer's own tabs
   'sales:updated': (p: SalesUpdatedPayload) => void; // the event's staff room
-  // Day 18: 'checkin:recorded'
+  'checkin:recorded': (p: CheckinRecordedPayload) => void; // the event's staff room
 }
 
 export type Ack = { ok: true } | { ok: false; code: string };

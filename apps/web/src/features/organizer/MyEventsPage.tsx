@@ -61,7 +61,15 @@ export function MyEventsPage() {
                   <TableCell className="text-right">
                     {formatMoney(e.counters.revenue, e.currency)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="space-x-3 text-right whitespace-nowrap">
+                    {e.status === 'published' && (
+                      <Link
+                        to={`/organizer/events/${e.id}/check-in`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Check-in
+                      </Link>
+                    )}
                     <Link
                       to={`/organizer/events/${e.id}`}
                       className="text-blue-600 hover:underline"

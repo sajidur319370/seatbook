@@ -1,7 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 import type { Socket } from 'socket.io-client';
-import { Event, Seat, User } from '../src/db/models';
+import { Event, Seat, Ticket, User } from '../src/db/models';
+import { qrCode } from '../src/lib/ticketCodes';
 import { sweepOnce } from '../src/jobs/holdSweeper';
 import { publish } from '../src/events/publish';
 import { oid } from '../src/lib/ids';
@@ -600,6 +601,37 @@ describe('realtime', () => {
       expect((await pay(rafi!.token, eventId)).status).toBe(201);
       await expectNoEvent(other, 'booking:confirmed');
       await expectNoEvent(other, 'sales:updated');
+    });
+  });
+
+  describe('check-in (Day 18)', () => {
+    it('every gate in the staff room gets the scan and the new count', async () => {
+      const startsAt = Date.now() + 3_600_000; // inside the check-in window
+      const ev = await makePublishedEvent(org.token, {
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: new Date(startsAt + 3 * 3_600_000).toISOString(),
+      });
+      const [rafi, mina] = await makeBuyers(2);
+      await holdSeats(rafi!.token, ev.eventId, [ev.seats[0]!.id]);
+      const booking = await pay(rafi!.token, ev.eventId);
+      const ticketId = booking.body.booking.tickets[0].id as string;
+      const t = (await Ticket.findById(ticketId).lean())!;
+
+      const gate2 = await socketFor(org.token);
+      expect(await emitAck(gate2, 'staff:join', { eventId: ev.eventId })).toEqual({ ok: true });
+      const viewer = await viewerOf(mina!.token, ev.eventId); // a buyer on the map: hears nothing
+      const got = nextEvent<{ result: string; counts: object; ticket: { holderName: string } }>(
+        gate2,
+        'checkin:recorded',
+      );
+
+      await as(org.token)
+        .post(`/api/organizer/events/${ev.eventId}/check-in`)
+        .send({ code: qrCode(t._id, t.eventId), method: 'qr' });
+      const msg = await got;
+      expect(msg).toMatchObject({ result: 'ok', counts: { checkedIn: 1, sold: 1 } });
+      expect(msg.ticket.holderName).toBe('Buyer 0');
+      await expectNoEvent(viewer, 'checkin:recorded');
     });
   });
 

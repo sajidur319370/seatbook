@@ -1,5 +1,11 @@
 import type { Types } from 'mongoose';
-import type { Role, SeatStatus } from '@seatbook/shared';
+import type {
+  CheckInCounts,
+  CheckinTicketDto,
+  Role,
+  ScanResult,
+  SeatStatus,
+} from '@seatbook/shared';
 
 export interface SeatChange {
   seatId: string;
@@ -31,5 +37,12 @@ export type DomainEvent =
       eventId: Types.ObjectId;
       bookingId: Types.ObjectId;
     }
-  | { type: 'sales.changed'; eventId: Types.ObjectId; seats: number; revenue: number };
-// Day 18: checkin.recorded
+  | { type: 'sales.changed'; eventId: Types.ObjectId; seats: number; revenue: number }
+  | {
+      type: 'checkin.recorded';
+      eventId: Types.ObjectId;
+      result: ScanResult;
+      ticket: CheckinTicketDto | null;
+      counts: CheckInCounts;
+      at: Date;
+    };

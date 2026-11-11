@@ -164,7 +164,20 @@ const ROWS: Row[] = [
     path: () => '/api/me/tickets/000000000000000000000001',
     perm: 'ticket:viewOwn',
   },
-  // Day 18: check-in, Day 19: dashboards
+  {
+    name: 'check in',
+    method: 'post',
+    path: (f) => `/api/organizer/events/${f.eventId}/check-in`,
+    perm: 'checkin:perform',
+    body: () => ({ code: 'x', method: 'qr' }),
+  },
+  {
+    name: 'scan log',
+    method: 'get',
+    path: (f) => `/api/organizer/events/${f.eventId}/scans`,
+    perm: 'checkin:perform',
+  },
+  // Day 19: dashboards
 ];
 
 describe('RBAC matrix', () => {

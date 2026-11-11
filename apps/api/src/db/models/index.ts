@@ -6,4 +6,5 @@ export * from './seat.model';
 export * from './hold.model';
 export * from './booking.model';
 export * from './ticket.model';
+export * from './scan.model';
 export * from './jobLock.model';

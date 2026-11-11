@@ -1,13 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import {
+  checkInSchema,
   createEventSchema,
   EVENT_STATUSES,
+  scanFeedQuerySchema,
   seatMapInputSchema,
   updateEventSchema,
 } from '@seatbook/shared';
 import { badRequest } from '../../lib/errors';
 import { authorize } from '../../middleware/authorize';
+import { checkinLimiter } from '../../middleware/rateLimits';
 import { validate, valid } from '../../middleware/validate';
 import { ownedEventParam } from './ownedEvent.param';
 import * as svc from './event.service';
@@ -15,6 +18,7 @@ import { publishEvent, unpublishEvent } from './publish.service';
 import { saveSeatMap } from './seatmap.service';
 import { findOwnedEvent } from '../events/scope';
 import { toOrganizerEventDto } from '../events/event.dto';
+import { checkIn, scanFeed } from '../checkin/checkin.service';
 
 export const organizerRouter = Router(); // mounted behind authenticate
 
@@ -88,4 +92,30 @@ organizerRouter.post('/events/:eventId/publish', authorize('event:manage'), asyn
 organizerRouter.post('/events/:eventId/unpublish', authorize('event:manage'), async (req, res) => {
   res.json({ event: toOrganizerEventDto(await unpublishEvent(req.ctx, req.event!._id)) });
 });
-// Day 18: check-in · Day 19: dashboard, attendees
+
+const checkInReq = { body: checkInSchema };
+organizerRouter.post(
+  '/events/:eventId/check-in',
+  authorize('checkin:perform'),
+  checkinLimiter.middleware,
+  validate(checkInReq),
+  async (req, res) => {
+    const input = valid(req, checkInReq).body;
+    const r = await checkIn(req.ctx, req.event!, input);
+    // FR-CHK-10: a typed code that matches nothing costs a second hit (slows down guessing).
+    if (r.result === 'not_found' && input.method === 'manual')
+      await checkinLimiter.chargeAgain(req);
+    res.json(r); // always 200 for business results (FR-CHK-05)
+  },
+);
+
+const scansReq = { query: scanFeedQuerySchema };
+organizerRouter.get(
+  '/events/:eventId/scans',
+  authorize('checkin:perform'),
+  validate(scansReq),
+  async (req, res) => {
+    res.json(await scanFeed(req.event!._id, valid(req, scansReq).query));
+  },
+);
+// Day 19: dashboard, attendees

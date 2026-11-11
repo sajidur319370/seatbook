@@ -19,6 +19,7 @@ export const httpLogger = pinoHttp({
     'req.headers.authorization',
     'req.headers.cookie',
     'req.headers["idempotency-key"]',
+    'req.body.code', // check-in codes (FR-TKT-09). pino-http logs no bodies; this is a safety net.
     'res.headers["set-cookie"]',
   ],
 });

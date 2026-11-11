@@ -43,6 +43,9 @@ const NewEventPage = lazy(() =>
 const EventEditorPage = lazy(() =>
   import('@/features/organizer/EventEditorPage').then((m) => ({ default: m.EventEditorPage })),
 );
+const CheckInPage = lazy(() =>
+  import('@/features/checkin/CheckInPage').then((m) => ({ default: m.CheckInPage })),
+);
 const AdminOverviewPage = lazy(() =>
   import('@/features/admin/AdminOverviewPage').then((m) => ({ default: m.AdminOverviewPage })),
 );
@@ -83,6 +86,7 @@ export const router = createBrowserRouter(
             <Route path="/organizer" element={<MyEventsPage />} />
             <Route path="/organizer/events/new" element={<NewEventPage />} />
             <Route path="/organizer/events/:eventId" element={<EventEditorPage />} />
+            <Route path="/organizer/events/:eventId/check-in" element={<CheckInPage />} />
           </Route>
 
           <Route element={<RequirePermission perm="admin:overview" />}>
