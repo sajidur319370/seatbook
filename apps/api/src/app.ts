@@ -19,7 +19,18 @@ export function createApp() {
   app.disable('x-powered-by');
 
   app.use(httpLogger);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          // The door scanner decodes QR codes with WebAssembly (ZXing) on browsers without a
+          // built-in BarcodeDetector, such as iPhones. Compiling WASM needs this; it does NOT allow
+          // eval() of JavaScript. The .wasm file itself comes from 'self'. Day 20 sets the full CSP.
+          scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+        },
+      },
+    }),
+  );
   app.use(compression({ threshold: 1024 }));
   app.use(cors({ origin: env.APP_URL, credentials: true }));
   app.use(express.json({ limit: '100kb' }));

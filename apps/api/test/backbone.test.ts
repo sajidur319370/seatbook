@@ -21,6 +21,20 @@ describe('backbone', () => {
     expect(res.status).toBe(200);
   });
 
+  it('CSP: own origin only, plus WASM for the door scanner (no eval, no CDN)', async () => {
+    const csp = (await request(app).get('/health')).headers['content-security-policy'] as string;
+    const directive = (name: string) =>
+      csp
+        .split(';')
+        .map((d) => d.trim())
+        .find((d) => d.startsWith(`${name} `));
+    expect(directive('script-src')).toBe("script-src 'self' 'wasm-unsafe-eval'");
+    expect(directive('default-src')).toBe("default-src 'self'");
+    expect(directive('img-src')).toContain('data:'); // ticket QR codes are data: URLs (Day 17)
+    expect(csp).not.toContain("'unsafe-eval'");
+    expect(csp).not.toMatch(/jsdelivr|unpkg/);
+  });
+
   it('puts x-request-id on successful responses too', async () => {
     const res = await request(app).get('/health');
     expect(res.headers['x-request-id']).toMatch(/^req_/);

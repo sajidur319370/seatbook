@@ -167,10 +167,12 @@ function ScanTab(props: {
       </div>
 
       {cameraError ? (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-          The camera isn’t available ({cameraError}). It needs HTTPS and your permission. Type the
-          code below instead.
-        </p>
+        <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+          <p>{cameraError} You can type the code below instead.</p>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => setCameraError(null)}>
+            Try the camera again
+          </Button>
+        </div>
       ) : (
         <QrScanner
           paused={scan.isPending || !props.active}
