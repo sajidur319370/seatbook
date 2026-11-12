@@ -207,7 +207,7 @@ async function buy(
       if (!RETRYABLE.includes(code)) throw err;
     }
     if (!wanted.length) return;
-    if (attempt >= 3) throw new Error(`seed: could not buy ${wanted.length} seat(s) after 3 tries`);
+    if (attempt >= 4) throw new Error(`seed: could not buy ${wanted.length} seat(s) after 4 tries`);
     clock.advance(11 * MIN); // past the orphaned seats' 10-minute hold: they're free again
   }
 }

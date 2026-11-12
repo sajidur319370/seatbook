@@ -15,7 +15,7 @@ import {
 import { systemCtx } from '../types/ctx';
 
 export const INSTANCE_ID = `${os.hostname()}-${process.pid}`;
-const LOCK = 'hold-sweeper';
+export const LOCK = 'hold-sweeper';
 
 /** Lease lock: free if the lease ran out, or already ours (renew). */
 export async function acquireLock(now: Date, instanceId = INSTANCE_ID): Promise<boolean> {

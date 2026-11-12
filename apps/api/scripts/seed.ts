@@ -13,7 +13,8 @@ import mongoose from 'mongoose';
 import { env } from '../src/config/env';
 import { connectDb, disconnectDb } from '../src/db/connection';
 import { syncAllIndexes } from '../src/db/indexes';
-import { User } from '../src/db/models';
+import { JobLock, User } from '../src/db/models';
+import { LOCK } from '../src/jobs/holdSweeper';
 import { muteMail } from '../src/mail/mailer';
 import { repairCounters } from '../src/ops/counters';
 import { checkInvariants } from '../src/ops/invariants';
@@ -48,7 +49,28 @@ if (flags.reset) {
 await syncAllIndexes();
 muteMail(); // hundreds of booking emails to fake addresses help nobody
 
-await seedDemo({ password: env.SEED_DEMO_PASSWORD, big: flags.big, log: console.log });
+/*
+ * Pause any RUNNING server's sweeper (the live demo's): every hold the seed makes on a past day
+ * looks long expired, and a sweeper running every 5 s would free its seats mid-purchase. The
+ * sweeper's own lease lock is the off switch: hold it, renew it, give it back at the end. A server
+ * whose lock someone else holds stays healthy (/ready).
+ */
+const takeLease = () =>
+  JobLock.updateOne(
+    { _id: LOCK },
+    {
+      $set: { lockedBy: 'seed', lockedUntil: new Date(Date.now() + 60_000), lastRunAt: new Date() },
+    },
+    { upsert: true },
+  );
+await takeLease();
+const renew = setInterval(() => void takeLease().catch(() => {}), 10_000);
+try {
+  await seedDemo({ password: env.SEED_DEMO_PASSWORD, big: flags.big, log: console.log });
+} finally {
+  clearInterval(renew);
+  await JobLock.updateOne({ _id: LOCK, lockedBy: 'seed' }, { $set: { lockedUntil: new Date(0) } });
+}
 
 // Display counters are bumped after commit; recount anyway, then prove the data is consistent.
 await repairCounters({ apply: true });
