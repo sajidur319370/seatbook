@@ -6,6 +6,7 @@ import { decodeStartsCursor, encodeStartsCursor } from '../../lib/cursor';
 import { notFound } from '../../lib/errors';
 import { oid } from '../../lib/ids';
 import { escapeRegex } from '../../lib/regex';
+import { access } from '../../middleware/access';
 import { optionalAuth } from '../../middleware/authenticate';
 import { validate, valid } from '../../middleware/validate';
 import { publicEventFilter } from './scope';
@@ -26,7 +27,7 @@ const listReq = {
   }),
 };
 
-publicEventsRouter.get('/', validate(listReq), async (req, res) => {
+publicEventsRouter.get('/', access('public'), validate(listReq), async (req, res) => {
   const q = valid(req, listReq).query;
   const now = new Date();
   const filter: Record<string, unknown> = { status: 'published', endsAt: { $gt: now } }; // FR-EVT-07/11
@@ -63,11 +64,17 @@ publicEventsRouter.get('/', validate(listReq), async (req, res) => {
 
 // Two segments, so it never collides with /:slug below.
 const seatsReq = { params: z.object({ eventId: objectIdSchema }) };
-publicEventsRouter.get('/:eventId/seats', optionalAuth, validate(seatsReq), async (req, res) => {
-  res.json(await loadSeatMap(req.maybeCtx, oid(valid(req, seatsReq).params.eventId)));
-});
+publicEventsRouter.get(
+  '/:eventId/seats',
+  access('public'),
+  optionalAuth,
+  validate(seatsReq),
+  async (req, res) => {
+    res.json(await loadSeatMap(req.maybeCtx, oid(valid(req, seatsReq).params.eventId)));
+  },
+);
 
-publicEventsRouter.get('/:slug', optionalAuth, async (req, res) => {
+publicEventsRouter.get('/:slug', access('public'), optionalAuth, async (req, res) => {
   const ev = await Event.findOne({
     slug: String(req.params.slug).toLowerCase(),
     ...publicEventFilter(req.maybeCtx),

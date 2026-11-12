@@ -33,6 +33,18 @@ describe('backbone', () => {
     expect(directive('img-src')).toContain('data:'); // ticket QR codes are data: URLs (Day 17)
     expect(csp).not.toContain("'unsafe-eval'");
     expect(csp).not.toMatch(/jsdelivr|unpkg/);
+    // Day 20: the full policy (NFR-SEC-06/10)
+    expect(directive('connect-src')).toBe("connect-src 'self' ws://localhost:5173");
+    expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
+    expect(directive('object-src')).toBe("object-src 'none'");
+    expect(directive('form-action')).toBe("form-action 'self'");
+  });
+
+  it('camera only, and no HSTS outside production (Render terminates TLS in production)', async () => {
+    const res = await request(app).get('/health');
+    expect(res.headers['permissions-policy']).toBe('camera=(self), microphone=(), geolocation=()');
+    expect(res.headers['strict-transport-security']).toBeUndefined();
+    expect(res.headers['x-powered-by']).toBeUndefined();
   });
 
   it('puts x-request-id on successful responses too', async () => {

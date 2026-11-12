@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { pinoHttp } from 'pino-http';
+import { pinoHttp, type Options } from 'pino-http';
 import { logger } from './logger';
 
-export const httpLogger = pinoHttp({
-  logger,
+/** Exported so the redaction test (NFR-OBS-02) runs the REAL settings against a captured stream. */
+export const httpLoggerOptions: Options = {
   genReqId: (req, res) => {
     const incoming = req.headers['x-request-id'];
     const id =
@@ -22,4 +22,6 @@ export const httpLogger = pinoHttp({
     'req.body.code', // check-in codes (FR-TKT-09). pino-http logs no bodies; this is a safety net.
     'res.headers["set-cookie"]',
   ],
-});
+};
+
+export const httpLogger = pinoHttp({ logger, ...httpLoggerOptions });

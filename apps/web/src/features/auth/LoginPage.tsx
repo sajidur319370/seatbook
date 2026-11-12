@@ -13,7 +13,7 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const returnTo = safeReturnTo(params.get('returnTo'));
   const login = useLogin(returnTo);
-  const { register, handleSubmit, setError, formState } = useForm<LoginInput>({
+  const { register, handleSubmit, setError, setValue, formState } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -53,6 +53,58 @@ export function LoginPage() {
           Create account
         </Link>
       </div>
+      <DemoAccounts
+        onUse={(email, password) => {
+          setValue('email', email, { shouldValidate: true });
+          setValue('password', password, { shouldValidate: true });
+        }}
+      />
     </AuthCard>
+  );
+}
+
+/**
+ * FR-UI-09: one demo login per role, ONLY in a build made with VITE_DEMO_ACCOUNTS=true. The
+ * password is public on purpose (it's baked into the page): never reuse it anywhere else.
+ */
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_PASSWORD as string | undefined;
+const DEMO_ACCOUNTS = [
+  {
+    email: 'organizer@demo.seatbook.dev',
+    role: 'Organizer',
+    note: 'dashboards, builder, check-in',
+  },
+  { email: 'attendee@demo.seatbook.dev', role: 'Attendee', note: 'has tickets with QR codes' },
+  { email: 'attendee2@demo.seatbook.dev', role: 'Attendee 2', note: 'a second browser' },
+  { email: 'admin@demo.seatbook.dev', role: 'Admin', note: 'platform overview, approvals' },
+];
+
+function DemoAccounts({ onUse }: { onUse: (email: string, password: string) => void }) {
+  if (import.meta.env.VITE_DEMO_ACCOUNTS !== 'true' || !DEMO_PASSWORD) return null;
+  return (
+    <section
+      className="mt-6 rounded-lg border border-dashed p-3 text-sm"
+      aria-label="Demo accounts"
+    >
+      <p className="font-medium">Demo accounts</p>
+      <p className="mb-2 text-gray-600">Pick one to fill in the form, then log in.</p>
+      <ul className="space-y-1">
+        {DEMO_ACCOUNTS.map((a) => (
+          <li key={a.email} className="flex items-center justify-between gap-2">
+            <span className="min-w-0">
+              <b>{a.role}</b> <span className="text-gray-600">· {a.note}</span>
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onUse(a.email, DEMO_PASSWORD)}
+            >
+              Use
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

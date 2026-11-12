@@ -10,7 +10,14 @@ export interface Mail {
 /** Tests read this instead of a real inbox. */
 export const outbox: Mail[] = [];
 
+let muted = false;
+/** The seed sends hundreds of booking emails to fake addresses: they help nobody. */
+export const muteMail = () => {
+  muted = true;
+};
+
 export function sendMail(mail: Mail): void {
+  if (muted) return;
   if (env.NODE_ENV === 'test') {
     outbox.push(mail);
     return;

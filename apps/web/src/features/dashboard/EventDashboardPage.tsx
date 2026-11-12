@@ -51,6 +51,7 @@ function KpiTiles({ kpi, currency }: { kpi: EventDashboardDto['kpi']; currency: 
         label="Duplicate scans"
         value={formatCount(kpi.duplicateScans)}
         note="same ticket scanned twice"
+        testId="kpi-duplicates"
       />
     </div>
   );

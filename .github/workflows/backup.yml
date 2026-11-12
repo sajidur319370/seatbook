@@ -1,0 +1,49 @@
+name: Backup (Atlas → encrypted artifact)
+
+# database.md §11: Atlas M0 has no automated backups. Every night: dump, encrypt to YOUR public key,
+# keep 14 days. Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   MONGODB_OPS_URI   the ops user's URI (read access to seatbook is enough for a dump)
+#   BACKUP_AGE_PUBLIC_KEY   from `age-keygen` (keep the private key OFF GitHub)
+# Without them the job skips itself, so this file is safe to commit before you set them up.
+
+on:
+  schedule:
+    - cron: '30 20 * * *' # 02:30 in Dhaka
+  workflow_dispatch: # "Run workflow" button, for the first test and the restore drill
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_OPS_URI: ${{ secrets.MONGODB_OPS_URI }}
+      BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+    steps:
+      - name: Skip until the secrets exist
+        id: ready
+        run: |
+          if [ -z "$MONGODB_OPS_URI" ] || [ -z "$BACKUP_AGE_PUBLIC_KEY" ]; then
+            echo "Backup secrets not set: skipping." && echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install mongodump and age
+        if: steps.ready.outputs.go == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.12.2.deb -o tools.deb
+          sudo apt-get install -y -qq ./tools.deb
+      - name: Dump and encrypt
+        if: steps.ready.outputs.go == 'true'
+        run: |
+          name="seatbook-$(date -u +%F).gz"
+          mongodump --uri "$MONGODB_OPS_URI" --db seatbook --gzip --archive="$name"
+          age -r "$BACKUP_AGE_PUBLIC_KEY" -o "$name.age" "$name"
+          rm "$name"
+          ls -lh "$name.age"
+      - uses: actions/upload-artifact@v4
+        if: steps.ready.outputs.go == 'true'
+        with:
+          name: seatbook-backup
+          path: seatbook-*.gz.age
+          retention-days: 14

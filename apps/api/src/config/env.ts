@@ -21,6 +21,9 @@ const EnvSchema = z.object({
     .default('true')
     .transform((v) => v === 'true'),
   HOLD_MINUTES_OVERRIDE: z.coerce.number().int().min(1).max(10).optional(), // dev only: shorter holds
+  RATE_LIMITS: z.enum(['on', 'off']).default('on'), // 'off' only for the local load test
+  SEED_DEMO_PASSWORD: z.string().min(8).optional(), // every demo account's password (Day 20 seed)
+  SEED_ALLOW_PROD_RESET: z.string().optional(), // 'yes-really' lets the seed reset production
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -35,6 +38,11 @@ export const isProd = env.NODE_ENV === 'production';
 // NFR-SEC-04: one leaked secret must not let anyone both sign in as a user and print tickets.
 if (env.TICKET_SIGNING_SECRET === env.JWT_ACCESS_SECRET) {
   console.error('❌ TICKET_SIGNING_SECRET must be different from JWT_ACCESS_SECRET');
+  process.exit(1);
+}
+
+if (isProd && env.RATE_LIMITS === 'off') {
+  console.error('❌ RATE_LIMITS=off is not allowed in production');
   process.exit(1);
 }
 

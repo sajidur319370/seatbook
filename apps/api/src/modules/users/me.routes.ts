@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { changePasswordSchema, updateMeSchema } from '@seatbook/shared';
 import { User } from '../../db/models';
 import { notFound } from '../../lib/errors';
+import { access } from '../../middleware/access';
 import { validate, valid } from '../../middleware/validate';
 import { toApplicationDto } from '../applications/application.dto';
 import { latestApplication } from '../applications/application.service';
@@ -10,7 +11,7 @@ import { toUserDto } from './user.dto';
 
 export const meRouter = Router(); // mounted behind `authenticate`
 
-meRouter.get('/', async (req, res) => {
+meRouter.get('/', access('self'), async (req, res) => {
   const [user, application] = await Promise.all([
     User.findById(req.ctx.userId).lean(),
     latestApplication(req.ctx),
@@ -23,7 +24,7 @@ meRouter.get('/', async (req, res) => {
 });
 
 const updateReq = { body: updateMeSchema };
-meRouter.patch('/', validate(updateReq), async (req, res) => {
+meRouter.patch('/', access('self'), validate(updateReq), async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.ctx.userId,
     { $set: valid(req, updateReq).body },
@@ -34,7 +35,7 @@ meRouter.patch('/', validate(updateReq), async (req, res) => {
 });
 
 const pwReq = { body: changePasswordSchema };
-meRouter.patch('/password', validate(pwReq), async (req, res) => {
+meRouter.patch('/password', access('self'), validate(pwReq), async (req, res) => {
   const { currentPassword, newPassword } = valid(req, pwReq).body;
   await changePassword(req.ctx.userId, req.sessionId, currentPassword, newPassword);
   res.json({ ok: true });

@@ -19,18 +19,37 @@ export function createApp() {
   app.disable('x-powered-by');
 
   app.use(httpLogger);
+  // NFR-SEC-06/10. The CSP only reaches pages Express serves (production); Vite serves dev pages.
+  const socketOrigin = new URL(env.APP_URL).origin.replace(/^http/, 'ws'); // https://x → wss://x
   app.use(
     helmet({
       contentSecurityPolicy: {
+        useDefaults: false, // every directive listed here, nothing implicit
         directives: {
-          // The door scanner decodes QR codes with WebAssembly (ZXing) on browsers without a
-          // built-in BarcodeDetector, such as iPhones. Compiling WASM needs this; it does NOT allow
-          // eval() of JavaScript. The .wasm file itself comes from 'self'. Day 20 sets the full CSP.
+          defaultSrc: ["'self'"],
+          // The door scanner compiles a WebAssembly QR decoder on browsers without a built-in
+          // BarcodeDetector (iPhones). This allows compiling WASM; it does NOT allow eval().
           scriptSrc: ["'self'", "'wasm-unsafe-eval'"],
+          scriptSrcAttr: ["'none'"],
+          styleSrc: ["'self'", "'unsafe-inline'"], // Radix and Recharts set inline style attributes
+          imgSrc: ["'self'", 'data:'], // ticket QR codes are data: URLs
+          connectSrc: ["'self'", socketOrigin], // REST + Socket.io (older Safari: wss: isn't 'self')
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          frameAncestors: ["'none'"], // nobody may frame the checkout
+          ...(isProd && { upgradeInsecureRequests: [] }),
         },
       },
+      strictTransportSecurity: isProd ? { maxAge: 31_536_000, includeSubDomains: true } : false,
     }),
   );
+  app.use((_req, res, next) => {
+    // The scanner needs the camera; nothing needs the microphone or location.
+    res.set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    next();
+  });
   app.use(compression({ threshold: 1024 }));
   app.use(cors({ origin: env.APP_URL, credentials: true }));
   app.use(express.json({ limit: '100kb' }));

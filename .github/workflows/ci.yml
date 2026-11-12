@@ -4,6 +4,7 @@ on:
   pull_request:
 
 jobs:
+  # Lint, types, and every unit / integration / race / socket test (in-memory MongoDB).
   check:
     runs-on: ubuntu-latest
     steps:
@@ -20,3 +21,58 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+
+  # NFR-SEC-16: no known high-severity vulnerability in what runs in production.
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
+
+  # TR-10 + TR-08: the seed, 100 buyers for 2 minutes, the invariant checker, then Playwright.
+  e2e-and-load:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      # Throwaway values for a database that dies with the runner. Real secrets live in Render.
+      NODE_ENV: development
+      MONGODB_URI: mongodb://localhost:27018/seatbook?replicaSet=rs0
+      JWT_ACCESS_SECRET: ci-only-jwt-secret-0123456789abcdef0123456789
+      TICKET_SIGNING_SECRET: ci-only-ticket-secret-fedcba9876543210fedcba98
+      APP_URL: http://localhost:5173
+      SEED_DEMO_PASSWORD: ci-demo-password-1
+      RATE_LIMITS: 'off'
+      SWEEPER_ENABLED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:up # the same docker-compose replica set as on your laptop
+      - run: npm run seed -- --reset
+      # Load test + invariants (TR-10)
+      - run: npm run dev -w @seatbook/api > api.log 2>&1 &
+      - run: curl --retry 60 --retry-delay 1 --retry-all-errors -sf http://localhost:4000/ready
+      - run: npm run load:holds -- --buyers 100 --seconds 120
+      - run: npm run check:invariants
+      - run: pkill -f "src/server.ts" || true # free :4000; each step is a new shell
+      # E2E (TR-08): Playwright starts the dev servers and reseeds itself
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-report
+          path: |
+            playwright-report/
+            test-results/
+            api.log
+          retention-days: 7

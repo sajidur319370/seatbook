@@ -13,7 +13,11 @@
     "db:diff-indexes": "tsx scripts/diff-indexes.ts",
     "db:sync-indexes": "tsx scripts/sync-indexes.ts",
     "repair:stuck-holds": "tsx scripts/repair-stuck-holds.ts",
-    "bench:dashboard": "tsx scripts/bench-dashboard.ts"
+    "bench:dashboard": "tsx scripts/bench-dashboard.ts",
+    "seed": "tsx scripts/seed.ts",
+    "check:invariants": "tsx scripts/check-invariants.ts",
+    "repair:counters": "tsx scripts/repair-counters.ts",
+    "load:holds": "tsx scripts/load-holds.ts"
   },
   "dependencies": {
     "@seatbook/shared": "*",
