@@ -64,11 +64,17 @@ const takeLease = () =>
     { upsert: true },
   );
 await takeLease();
-const renew = setInterval(() => void takeLease().catch(() => {}), 10_000);
+// Keep the latest renewal: one still in flight at the end could land AFTER the release below and
+// pause the server's sweeper for another minute.
+let renewing: Promise<unknown> = Promise.resolve();
+const renew = setInterval(() => {
+  renewing = takeLease().catch(() => {});
+}, 10_000);
 try {
   await seedDemo({ password: env.SEED_DEMO_PASSWORD, big: flags.big, log: console.log });
 } finally {
   clearInterval(renew);
+  await renewing; // let a renewal already on its way land first, then release
   await JobLock.updateOne({ _id: LOCK, lockedBy: 'seed' }, { $set: { lockedUntil: new Date(0) } });
 }
 
