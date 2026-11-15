@@ -24,6 +24,11 @@ const EnvSchema = z.object({
   RATE_LIMITS: z.enum(['on', 'off']).default('on'), // 'off' only for the local load test
   SEED_DEMO_PASSWORD: z.string().min(8).optional(), // every demo account's password (Day 20 seed)
   SEED_ALLOW_PROD_RESET: z.string().optional(), // 'yes-really' lets the seed reset production
+  // 'true' on the public demo: @demo.seatbook.dev accounts can't change their password or profile.
+  DEMO_LOCK: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

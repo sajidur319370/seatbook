@@ -347,3 +347,47 @@ describe('/me', () => {
     expect((await login(newPassword)).status).toBe(200);
   });
 });
+
+describe('DEMO_LOCK (the public demo shows its password, so nobody may change it)', () => {
+  afterEach(() => {
+    env.DEMO_LOCK = false;
+  });
+
+  const signUp = async (email: string) =>
+    (await request(app).post('/api/auth/register').send({ name: 'D', email, password: PASSWORD }))
+      .body.accessToken as string;
+  const changePw = (token: string) =>
+    as(token)
+      .patch('/api/me/password')
+      .send({ currentPassword: PASSWORD, newPassword: 'Taken1234' });
+  const rename = (token: string) => as(token).patch('/api/me').send({ name: 'Hijacked' });
+
+  it('on: a demo account cannot change its password or profile, and nothing is written', async () => {
+    env.DEMO_LOCK = true;
+    const email = 'locked@demo.seatbook.dev';
+    const token = await signUp(email);
+
+    for (const res of [await changePw(token), await rename(token)]) {
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('DEMO_ACCOUNT_LOCKED');
+    }
+    const user = await User.findOne({ email }).lean();
+    expect(user?.name).toBe('D');
+    expect(user?.passwordChangedAt).toBeNull();
+    const login = await request(app).post('/api/auth/login').send({ email, password: PASSWORD });
+    expect(login.status).toBe(200);
+  });
+
+  it('on: real accounts are untouched', async () => {
+    env.DEMO_LOCK = true;
+    const { token } = await registerUser();
+    expect((await rename(token)).status).toBe(200);
+    expect((await changePw(token)).status).toBe(200);
+  });
+
+  it('off (the default): demo accounts behave like any other', async () => {
+    const token = await signUp('unlocked@demo.seatbook.dev');
+    expect((await rename(token)).status).toBe(200);
+    expect((await changePw(token)).status).toBe(200);
+  });
+});

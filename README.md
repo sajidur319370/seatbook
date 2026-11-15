@@ -53,7 +53,7 @@ npm run db:up && npm run seed      # MongoDB on port 27018, then the demo (about
 npm run dev                        # http://localhost:5173 · log in as organizer@demo.seatbook.dev
 ```
 
-Demo accounts (all with your `SEED_DEMO_PASSWORD`): `organizer@`, `attendee@`, `attendee2@`, `admin@` and `applicant@demo.seatbook.dev`. To show them as buttons on the login page, build with `VITE_DEMO_ACCOUNTS=true` and `VITE_DEMO_PASSWORD` (`apps/web/.env.example`).
+Demo accounts (all with your `SEED_DEMO_PASSWORD`): `organizer@`, `attendee@`, `attendee2@`, `admin@` and `applicant@demo.seatbook.dev`. To show them as buttons on the login page, build with `VITE_DEMO_ACCOUNTS=true` and `VITE_DEMO_PASSWORD` (`apps/web/.env.example`). On a public demo, also set `DEMO_LOCK=true` on the API: then no visitor can change a demo account's password or profile and lock the next one out (real accounts are unaffected).
 
 ## Tests
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { changePasswordSchema, updateMeSchema } from '@seatbook/shared';
 import { User } from '../../db/models';
+import { assertNotLockedDemo } from '../../lib/demo';
 import { notFound } from '../../lib/errors';
 import { access } from '../../middleware/access';
 import { validate, valid } from '../../middleware/validate';
@@ -25,6 +26,7 @@ meRouter.get('/', access('self'), async (req, res) => {
 
 const updateReq = { body: updateMeSchema };
 meRouter.patch('/', access('self'), validate(updateReq), async (req, res) => {
+  assertNotLockedDemo(req.ctx.email);
   const user = await User.findByIdAndUpdate(
     req.ctx.userId,
     { $set: valid(req, updateReq).body },
@@ -36,6 +38,7 @@ meRouter.patch('/', access('self'), validate(updateReq), async (req, res) => {
 
 const pwReq = { body: changePasswordSchema };
 meRouter.patch('/password', access('self'), validate(pwReq), async (req, res) => {
+  assertNotLockedDemo(req.ctx.email);
   const { currentPassword, newPassword } = valid(req, pwReq).body;
   await changePassword(req.ctx.userId, req.sessionId, currentPassword, newPassword);
   res.json({ ok: true });

@@ -20,6 +20,7 @@ import {
 } from '@seatbook/shared';
 import { Seat, Ticket, User, type EventLean } from '../db/models';
 import { addDays, calendarDays } from '../lib/dates';
+import { DEMO_DOMAIN } from '../lib/demo';
 import { AppError } from '../lib/errors';
 import { qrCode } from '../lib/ticketCodes';
 import { approveApplication } from '../modules/admin/admin.service';
@@ -36,7 +37,7 @@ import { makeCtx, type Ctx } from '../types/ctx';
 import { mulberry32, pick, takeTogether, type Rand } from './random';
 
 const TZ = 'Asia/Dhaka';
-export const DEMO = (local: string) => `${local}@demo.seatbook.dev`;
+export const DEMO = (local: string) => `${local}@${DEMO_DOMAIN}`;
 let password = ''; // set by seedDemo()
 
 // ---------------------------------------------------------------- clocks and people
