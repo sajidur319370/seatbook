@@ -55,6 +55,22 @@ npm run dev                        # http://localhost:5173 · log in as organize
 
 Demo accounts (all with your `SEED_DEMO_PASSWORD`): `organizer@`, `attendee@`, `attendee2@`, `admin@` and `applicant@demo.seatbook.dev`. To show them as buttons on the login page, build with `VITE_DEMO_ACCOUNTS=true` and `VITE_DEMO_PASSWORD` (`apps/web/.env.example`). On a public demo, also set `DEMO_LOCK=true` on the API: then no visitor can change a demo account's password or profile and lock the next one out (real accounts are unaffected).
 
+### Reset the live demo
+
+Visitors can still buy tickets and build events, so the live data drifts. To wipe it and seed a fresh demo (dates move to today), point the seed at the live database. `apps/api/.env.atlas` is not in git: it holds `NODE_ENV=production`, the Atlas `MONGODB_URI`, a `JWT_ACCESS_SECRET`, the host's own `TICKET_SIGNING_SECRET` (otherwise the seeded tickets won't scan) and `SEED_DEMO_PASSWORD`.
+
+```powershell
+# PowerShell, from the repo root. ERASES ALL LIVE DATA, real sign-ups included. About 18 minutes.
+$env:SEED_ALLOW_PROD_RESET = 'yes-really'; node --env-file=apps/api/.env.atlas --import tsx apps/api/scripts/seed.ts --reset --big; Remove-Item Env:SEED_ALLOW_PROD_RESET
+```
+
+```bash
+# bash
+SEED_ALLOW_PROD_RESET=yes-really node --env-file=apps/api/.env.atlas --import tsx apps/api/scripts/seed.ts --reset --big
+```
+
+Without `SEED_ALLOW_PROD_RESET=yes-really` the script refuses to touch production. The site stays up during the run: the seed pauses the live sweeper through its lease lock and hands it back at the end. It finishes with `✅ Seeded …` once the invariant check passes.
+
 ## Tests
 
 | Command                                           | What                                                                                          |
